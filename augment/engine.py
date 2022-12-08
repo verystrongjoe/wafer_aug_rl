@@ -10,6 +10,7 @@ from augment.child import ChildCNN
 from augment.module import Controller, Objective, Notebook
 from augment.image_generator import deepaugment_image_generator
 from utils import get_args, pre_requisite, print_metric, make_description
+import torch.multiprocessing
 
 class DeepAugment:
     def __init__(self, args):
@@ -103,7 +104,9 @@ class DeepAugment:
         f_val = self.objective_func.evaluate(0, no_aug_hyperparams)
         self.controller.tell(no_aug_hyperparams, f_val)
 
+
 if __name__ == '__main__':
+    torch.multiprocessing.set_sharing_strategy('file_system')
     args = get_args()
     run = pre_requisite(args)
 
@@ -120,5 +123,4 @@ if __name__ == '__main__':
     args.logger.info(best_policies)
 
     best_policies.to_csv('best.csv', index=False)
-
 
