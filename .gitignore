@@ -1,0 +1,5 @@
+.idea/
+data/
+output/
+wandb/
+__pycache__/
