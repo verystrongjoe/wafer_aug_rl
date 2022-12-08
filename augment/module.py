@@ -227,9 +227,9 @@ class Objective:
         for sample_no in range(1, self.opt_samples + 1):
             self.child_model.trainer.load_checkpoint(0)
             # train
-            history = self.child_model.fit(trial_hyperparams)
+            train_results, valid_results = self.child_model.fit(trial_hyperparams)
             # calculate reward
-            reward = self.calculate_reward(history)
+            reward = self.calculate_reward(train_results, valid_results)
             sample_rewards.append(reward)
             self.notebook.record(
                 trial_no, trial_hyperparams, sample_no, reward, history
@@ -240,7 +240,7 @@ class Objective:
         print(f"{str(trial_no)}, {str(trial_cost)}, {str(trial_hyperparams)}")
         return trial_cost
 
-    def calculate_reward(self, history):
+    def calculate_reward(self, train_history, valid_history):
         """Calculates reward for the history.
 
         Reward is mean of largest n validation accuracies which are not overfitting.
@@ -253,10 +253,11 @@ class Objective:
         Returns:
             float: reward
         """
-        history_df = pd.DataFrame(history)
-        history_df["acc_overfit"] = history_df["acc"] - history_df["val_acc"]
+        df_train_history = pd.DataFrame(train_history)
+        df_valid_history = pd.DataFrame(valid_history)
+        df_valid_history["acc_overfit"] = df_train_history["acc"] - df_valid_history["val_acc"]
         reward = (
-            history_df[history_df["acc_overfit"] <= 0.10]["val_acc"]
+            df_valid_history[df_valid_history["acc_overfit"] <= 0.10]["acc"]
             .nlargest(self.opt_last_n_epochs)
             .mean()
         )

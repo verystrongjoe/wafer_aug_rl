@@ -22,7 +22,6 @@ def get_args():
     parser.add_argument('--input_size_xy', type=int, default=96)
     parser.add_argument('--num_classes', type=int, default=9)
 
-
     # experiment
     parser.add_argument('--num_gpu', type=int, default=0)
     parser.add_argument('--batch_size', type=int, default=256)
@@ -45,6 +44,7 @@ def get_args():
     parser.add_argument('--child_batch_size', type=int, default=32)
     parser.add_argument("--aug_types", nargs='+', type=str, default=['rotate', 'rotate', 'rotate', 'rotate', 'rotate'])
     parser.add_argument("--aug_magnitudes", nargs='+', type=float, default=[0.0, 0.0, 0.0, 0.0, 0.0])
+    parser.add_argument('--reward_metric', type=str, default='MultiAUPRC')
 
     return parser.parse_args()
 
@@ -125,6 +125,8 @@ if __name__ == '__main__':
     args = get_args()
     print(args)
     pre_requisite(args)
+
+
 
 
 

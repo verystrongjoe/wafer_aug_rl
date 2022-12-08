@@ -64,11 +64,12 @@ class ChildCNN:
         valid_loader = DataLoader(valid_set, self.args.child_batch_size, num_workers=self.args.num_workers,
                                   shuffle=True, drop_last=False, pin_memory=False)
 
-        results = []
+        train_results, valid_results = []
         for epoch in range(epochs):
             train_history = self.trainer.train_epoch(train_loader)
             valid_history = self.trainer.valid_epoch(valid_loader)
-            train_history.update(valid_history)
-            results.append(train_history)
-        return results
+            train_results.append(train_history)
+            valid_results.append(valid_history)
+
+        return train_results, valid_results
 
