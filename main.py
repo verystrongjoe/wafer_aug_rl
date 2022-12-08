@@ -18,7 +18,7 @@ if __name__ == '__main__':
     run = pre_requisite(args)
 
     # 2. set model
-    model = CNN().to(args.num_cpu)  # todo: change model type
+    model = CNN().to(args.num_gpu)  # todo: change model type
     summary(model, (1, 96, 96), batch_size=16)
 
     # 3. set model parameter and setting
@@ -32,12 +32,12 @@ if __name__ == '__main__':
 
     fn_loss = torch.nn.CrossEntropyLoss()  # 비용 함수에 소프트맥스 함수 포함되어져 있음.
     criterions = {
-        'MultiAccuracy': MultiAccuracy(num_classes=9),
-        'MultiAUPRC': MultiAUPRC(num_classes=9),
-        'MultiF1Score': MultiF1Score(num_classes=9, average='macro'),
-        'MultiRecall': MultiRecall(num_classes=9, average='macro'),
-        'MultiPrecision': MultiPrecision(num_classes=9, average='macro'),
-        'TopKAccuracy': TopKAccuracy(num_classes=9, k=3),
+        'MultiAccuracy': MultiAccuracy(num_classes=args.num_classes),
+        'MultiAUPRC': MultiAUPRC(num_classes=args.num_classes),
+        'MultiF1Score': MultiF1Score(num_classes=args.num_classes, average='macro'),
+        'MultiRecall': MultiRecall(num_classes=args.num_classes, average='macro'),
+        'MultiPrecision': MultiPrecision(num_classes=args.num_classes, average='macro'),
+        'TopKAccuracy': TopKAccuracy(num_classes=args.num_classes, k=3),
     }
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
 

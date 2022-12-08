@@ -6,10 +6,13 @@ import logging
 from argparse import Namespace
 import datetime
 import numpy as np
-
+from augment.child import ChildCNN
+from augment.module import Controller, Objective, Notebook
+from augment.image_generator import deepaugment_image_generator
+from utils import get_args, pre_requisite, print_metric, make_description
 
 class DeepAugment:
-    def __init__(self, config):
+    def __init__(self, args):
         """Initializes DeepAugment object
 
         Does following steps:
@@ -20,30 +23,23 @@ class DeepAugment:
             5. do initial training
             6. create objective function
             7. evaluate objective function without augmentation
-
-        Args:
-            images (numpy.array/str): array with shape (n_images, dim1, dim2 , channel_size), or a string with name of keras-dataset (cifar10, fashion_mnsit)
-            labels (numpy.array): labels of images, array with shape (n_images) where each element is an integer from 0 to number of classes
-            config (dict): dictionary of configurations, for updating the default config which is:
         """
-        self.config = vars(config)
+        self.args = args
         self.iterated = 0  # keep tracks how many times optimizer iterated
-        self._load_and_preprocess_data(config.images)
-        print('data prepared.')
 
         # define main objects
-        self.child_model = ChildCNN(self.num_classes, Namespace(**self.config))
-        print('model created.')
-        self.controller = Controller(self.config)
-        self.notebook = Notebook(self.config)
+        self.child_model = ChildCNN(args)
+        self.args.logger.info('model created.')
+        self.controller = Controller(args)
+        self.notebook = Notebook(args)
 
-        if self.config["child_first_train_epochs"] > 0:
+        if args.child_first_train_epochs > 0:
             self._do_initial_training()
-        print('model init trained.')
-        self.child_model.save_pre_aug_weights()
-        self.objective_func = Objective(self.data, self.child_model, self.notebook, self.config)
+        self.args.logger.info('model init trained.')
+        self.child_model.trainer.save_checkpoint(0)
+        self.objective_func = Objective(args, self.child_model, self.notebook)
         self._evaluate_objective_func_without_augmentation()
-        print('model is evaluated firstly.')
+        self.args.logger.info('model is evaluated without agumentation for the first time.')
 
     def optimize(self, iterations=300):
         """Optimize objective function hyperparameters using controller and child model
@@ -53,13 +49,13 @@ class DeepAugment:
         # iterate optimizer
         for trial_no in range(self.iterated + 1, self.iterated + iterations + 1):
             trial_hyperparams = self.controller.ask()
-            print("trial:", trial_no, "\n", trial_hyperparams)
+            self.args.logger.info("trial:", trial_no, "\n", trial_hyperparams)
             f_val = self.objective_func.evaluate(trial_no, trial_hyperparams)
             self.controller.tell(trial_hyperparams, f_val)
         self.iterated += iterations  # update number of previous iterations
         self.top_policies = self.notebook.get_top_policies(20)
         self.notebook.output_top_policies()
-        print("\ntop policies are:\n", self.top_policies)
+        self.args.logger.info("\ntop policies are:\n", self.top_policies)
         return self.top_policies
 
     def image_generator_with_top_policies(self, images, labels, batch_size=None):
@@ -84,24 +80,6 @@ class DeepAugment:
 
         return deepaugment_image_generator(images, labels, top_policies_list, batch_size=batch_size)
 
-    def _load_and_preprocess_data(self, image):
-        """Loads and preprocesses data
-        Records `input_shape`, `data`, and `num_classes` into `self
-        Args:
-            images (numpy.array/str): array with shape (n_images, dim1, dim2 , channel_size), or a string with name of keras-dataset (cifar10, fashion_mnsit)
-            labels (numpy.array): labels of images, array with shape (n_images) where each element is an integer from 0 to number of classes
-        """
-        # todo : 데이터 로드부분 wm811k 할때 변경해서 사용하자. 지금은 cifar10
-        X_train, y_train, X_val, y_val, num_classes = DataOp.load(image)
-
-        self.data = {
-            "X_train": np.asarray(X_train),
-            "y_train": np.asarray(y_train),
-            "X_val_seed": np.asarray(X_val),
-            "y_val_seed": np.asarray(y_val)
-        }
-        self.num_classes = num_classes
-
     def _do_initial_training(self):
         """Do the first training without augmentations
 
@@ -114,7 +92,6 @@ class DeepAugment:
             -1, ["first", 0.0, "first", 0.0, "first", 0.0, 0.0], 1, None, history
         )
 
-    @timeit
     def _evaluate_objective_func_without_augmentation(self):
         """Find out what would be the accuracy if augmentation are not applied
         """
@@ -126,22 +103,18 @@ class DeepAugment:
         f_val = self.objective_func.evaluate(0, no_aug_hyperparams)
         self.controller.tell(no_aug_hyperparams, f_val)
 
+if __name__ == '__main__':
+    args = get_args()
+    run = pre_requisite(args)
 
-def main(config):
-    deepaug = DeepAugment(config)
-    best_policies = deepaug.optimize(config.opt_iterations)
-    print(best_policies)
+    # logging params
+    args.logger.info(args)
 
+    # declare augmenter
+    deepaug = DeepAugment(args)
 
-if __name__ == "__main__":
-    config = WaPIRLConfig.parse_arguments()
-    config.pre_backbone_aug_weights_path = "pre_backbone_aug_weights.h5"
-    config.pre_classifier_aug_weights_path = "pre_classifier_aug_weights.h5"
-    config.notebook_path = f"{EXPERIMENT_FOLDER_PATH}/notebook.csv"
+    # run
+    best_policies = deepaug.optimize(args.opt_iterations)
 
-    logfile = os.path.join(config.checkpoint_dir, 'main.log')
-    config.logging = get_logger(stream=False, logfile=logfile)
-
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'  # todo : 0번 gpu로 고정
-    torch.cuda.set_device(0)  # todo : 0번 gpu로 고정
-    main(config)
+    # log
+    args.logger.info(best_policies)

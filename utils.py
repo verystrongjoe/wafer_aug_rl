@@ -8,22 +8,49 @@ import wandb
 
 def get_args():
     parser = argparse.ArgumentParser(description='wapirl augmentation optimizer')
+
+    # wandb
     parser.add_argument('--project_name', type=str, default='first')
+
+    # nn
     parser.add_argument('--model_type', type=str, default='basic')
     parser.add_argument('--lr', type=float, default=0.005)
     parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--decouple_input',  action='store_true')
+
+    # data
     parser.add_argument('--input_size_xy', type=int, default=96)
-    parser.add_argument('--num_cpu', type=int, default=0)
+    parser.add_argument('--num_classes', type=int, default=9)
+
+
+    # experiment
+    parser.add_argument('--num_gpu', type=int, default=0)
     parser.add_argument('--batch_size', type=int, default=256)
     parser.add_argument('--num_workers', type=int, default=1)
     parser.add_argument('--seed', type=int, default=1234)
-    parser.add_argument('--decouple_input',  action='store_true')
     parser.add_argument('--best_ckpt', type=str, default='best.ckpt')
+
+
+    # augment
+    parser.add_argument('--method', default="bayesian_optimization", type=str)
+    parser.add_argument('--images', default='wm811k', type=str)
+    parser.add_argument('--labels', action='store_true')
+    parser.add_argument('--train_set_size', type=int, default=4000, help='')
+    parser.add_argument('--opt_iterations', type=int, default=1000, help='')
+    parser.add_argument('--opt_samples', type=int, default=5, help='')
+    parser.add_argument('--opt_last_n_epochs', type=int, default=5, help='')
+    parser.add_argument('--opt_initial_points', type=int, default=20, help='')
+    parser.add_argument('--child_epochs', type=int, default=15, help='')
+    parser.add_argument('--child_first_train_epochs', type=int, default=0)
+    parser.add_argument('--child_batch_size', type=int, default=32)
+    parser.add_argument("--aug_types", nargs='+', type=str, default=['rotate', 'rotate', 'rotate', 'rotate', 'rotate'])
+    parser.add_argument("--aug_magnitudes", nargs='+', type=float, default=[0.0, 0.0, 0.0, 0.0, 0.0])
+
     return parser.parse_args()
 
 
 def pre_requisite(args):
-    num_gpu = args.num_cpu
+    num_gpu = args.num_gpu
     torch.cuda.device(num_gpu)
 
     # set timestamp
@@ -33,6 +60,7 @@ def pre_requisite(args):
     # create directories
     args.path_logs = f"output/logs/{args.project_name}/{args.now}"
     args.path_ckpt = f"output/checkpoints/{args.project_name}/{args.now}"
+    args.notebook_path = f"output/notebook/{args.project_name}/{args.now}"
     os.makedirs(args.path_ckpt, exist_ok=True)
 
     # set logger

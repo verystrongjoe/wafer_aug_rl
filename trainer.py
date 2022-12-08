@@ -19,8 +19,8 @@ class Trainer:
         trues, preds = [], []
 
         for batch in dataloader:
-            xs = batch['x'].to(self.args.num_cpu)
-            ys = batch['y'].to(self.args.num_cpu)
+            xs = batch['x'].to(self.args.num_gpu)
+            ys = batch['y'].to(self.args.num_gpu)
             self.optim.zero_grad()
             y_preds = self.model(xs)
             loss = self.fn_loss(y_preds, ys)
@@ -41,8 +41,8 @@ class Trainer:
         trues, preds = [], []
         self.model.eval()
         for batch in dataloader:
-            xs = batch['x'].to(self.args.num_cpu)
-            ys = batch['y'].to(self.args.num_cpu)
+            xs = batch['x'].to(self.args.num_gpu)
+            ys = batch['y'].to(self.args.num_gpu)
             y_preds = self.model(xs)
             loss = self.fn_loss(y_preds, ys)
             valid_loss += loss.item()
@@ -68,4 +68,4 @@ class Trainer:
     def load_checkpoint(self, epoch):
         ckpt = torch.load(self.args.path_ckpt + f"/{epoch}.ckpt")
         self.model.load_state_dict(ckpt['classifier'])
-        self.optimizer.load_state_dict(ckpt['optimizer'])
+        self.optim.load_state_dict(ckpt['optimizer'])
