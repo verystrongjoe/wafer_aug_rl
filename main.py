@@ -1,19 +1,16 @@
-import os
-import sys
 import torch
-import torch.nn as nn
-import numpy as np
-import wandb
-from itertools import product
-from datasets.wm811k import WM811K
-from datasets.transforms import WM811KTransform
-from torchsummary import summary
 from torch.utils.data import DataLoader
+from torchsummary import summary
 from datasets.loaders import balanced_loader
+from datasets.transforms import WM811KTransform
+from datasets.wm811k import WM811K
 from metrics import MultiAccuracy, MultiAUPRC, MultiF1Score, MultiRecall, MultiPrecision, TopKAccuracy
+from models.basic import CNN
 from trainer import Trainer
 from utils import get_args, pre_requisite, print_metric, make_description
-from models.basic import CNN
+import os
+import random
+import numpy as np
 
 if __name__ == '__main__':
     # 1. init
@@ -26,6 +23,12 @@ if __name__ == '__main__':
 
     # 3. set model parameter and setting
     torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)  # if use multi-GPU
+    torch.backends.cudnn.deterministic = True
+    os.environ['PYTHONHASHSEED'] = str(args.seed)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
 
     fn_loss = torch.nn.CrossEntropyLoss()  # 비용 함수에 소프트맥스 함수 포함되어져 있음.
     criterions = {
