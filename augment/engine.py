@@ -119,6 +119,6 @@ if __name__ == '__main__':
     # log
     args.logger.info(best_policies)
 
-    best_policies.to_csv('best.csv', index=False
+    best_policies.to_csv('best.csv', index=False)
 
 
