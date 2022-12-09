@@ -108,7 +108,11 @@ class Notebook:
             reward (float): reward is basically last n validation accuracy before overfitting
             history (dict): history returned by keras.model.fit()
         """
-        df_new = pd.DataFrame(history)
+        train_history, valid_history = history
+        df_train_history, df_valid_history = pd.DataFrame(train_history), pd.DataFrame(valid_history)
+        df_train_history = ["train_" + c for c in df_train_history.columns]
+        df_valid_history = ["valid_" + c for c in df_valid_history.columns]
+        df_new = df_train_history.join(df_valid_history)
         df_new['trial_no'] = trial_no
         
         df_new["A_aug1_type"] = trial_hyperparams[0]
@@ -205,9 +209,8 @@ class Notebook:
 
 class Objective:
     def __init__(self, args, child_model, notebook):
+        self.args = args
         self.child_model = child_model
-        self.opt_samples = args.opt_samples
-        self.opt_last_n_epochs = args.opt_last_n_epochs
         self.notebook = notebook
         self.logger = args.logger
 
@@ -224,15 +227,16 @@ class Objective:
             float: trial-cost = 1 - avg. rewards from samples
         """
         sample_rewards = []
-        for sample_no in range(1, self.opt_samples + 1):
+        for sample_no in range(1, self.args.opt_samples + 1):
             self.child_model.trainer.load_checkpoint(0)
             # train
             train_results, valid_results = self.child_model.fit(trial_hyperparams)
+
             # calculate reward
             reward = self.calculate_reward(train_results, valid_results)
             sample_rewards.append(reward)
             self.notebook.record(
-                trial_no, trial_hyperparams, sample_no, reward, history
+                trial_no, trial_hyperparams, sample_no, reward, (train_results, valid_results)
             )
 
         trial_cost = 1 - np.mean(sample_rewards)
@@ -255,10 +259,12 @@ class Objective:
         """
         df_train_history = pd.DataFrame(train_history)
         df_valid_history = pd.DataFrame(valid_history)
-        df_valid_history["acc_overfit"] = df_train_history["acc"] - df_valid_history["val_acc"]
+
+        metric = self.args.reward_metric
+        df_valid_history[f"{metric}_overfit"] = df_train_history[f"{metric}"] - df_valid_history[f"{metric}"]
         reward = (
-            df_valid_history[df_valid_history["acc_overfit"] <= 0.10]["acc"]
-            .nlargest(self.opt_last_n_epochs)
+            df_valid_history[df_valid_history[f"{metric}_overfit"] <= 0.10][f"{metric}"]
+            .nlargest(self.args.opt_last_n_epochs)
             .mean()
         )
         return reward

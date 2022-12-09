@@ -108,7 +108,7 @@ def get_logger(args, module_name):
     logger.addHandler(file_info_handler)
 
     file_error_handler = logging.FileHandler(path_err_log)
-    file_info_handler.setLevel(logging.ERROR)  # error
+    file_error_handler.setLevel(logging.ERROR)  # error
     file_error_handler.setFormatter(formatter)
     logger.addHandler(file_error_handler)
     return logger

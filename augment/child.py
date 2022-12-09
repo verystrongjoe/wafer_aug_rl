@@ -60,7 +60,8 @@ class ChildCNN:
                            transform=test_transform,
                            decouple_input=self.args.decouple_input)
 
-        train_loader = balanced_loader(train_set, self.args.child_batch_size, num_workers=self.args.num_workers, shuffle=False, pin_memory=False)
+        train_loader = balanced_loader(train_set, self.args.child_batch_size, num_workers=self.args.num_workers,
+                                       shuffle=False, pin_memory=False)
         valid_loader = DataLoader(valid_set, self.args.child_batch_size, num_workers=self.args.num_workers,
                                   shuffle=True, drop_last=False, pin_memory=False)
 
