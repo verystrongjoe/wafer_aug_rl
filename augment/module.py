@@ -147,8 +147,8 @@ class Notebook:
         df_new["epoch"] = np.arange(1, len(df_new) + 1)
         self.df = pd.concat([self.df, df_new])
 
-    def save(self):
-        self.df.to_csv(self.args.notebook_path, index=False)
+    def save(self, trial_no):
+        self.df.to_csv(self.args.notebook_path + f"/report_{trial_no}.csv", index=False)
 
     def add_records_from(self, path_notebook):
         df_notebook = pd.read_csv(path_notebook, comments='#')
@@ -241,7 +241,7 @@ class Objective:
             )
 
         trial_cost = 1 - np.mean(sample_rewards)
-        self.notebook.save()
+        self.notebook.save(trial_no)
         print(f"{str(trial_no)}, {str(trial_cost)}, {str(trial_hyperparams)}")
         return trial_cost
 
