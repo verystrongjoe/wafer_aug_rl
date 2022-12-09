@@ -159,14 +159,13 @@ def deepaugment_image_generator(X, y, policy, batch_size=64, augment_chance=0.5)
                 )
         else:
             policy_df = pd.read_csv(policy)
+            pd.read_csv('best.csv')
             policy_df = policy_df[
                 ["aug1_type", "aug1_magnitude", "aug2_type", "aug2_magnitude"]
             ]
             policy = policy_df.to_dict(orient="records")
 
-    print("Policies are:")
-    print(policy)
-    print()
+    print(f"Policies are: {policy}" )
 
     while True:
         ix = np.arange(len(X))
@@ -179,21 +178,20 @@ def deepaugment_image_generator(X, y, policy, batch_size=64, augment_chance=0.5)
             tiny_batch_size = 4
             aug_X = _X[0:tiny_batch_size]
             aug_y = _y[0:tiny_batch_size]
+
             for j in range(1, len(_X) // tiny_batch_size):
+
                 tiny_X = _X[j * tiny_batch_size : (j + 1) * tiny_batch_size]
                 tiny_y = _y[j * tiny_batch_size : (j + 1) * tiny_batch_size]
+
                 if np.random.rand() <= augment_chance:
                     aug_chain = np.random.choice(policy)
-                    aug_chain[
-                        "portion"
-                    ] = 1.0  # last element is portion, which we want to be 1
+                    aug_chain["portion"] = 1.0  # last element is portion, which we want to be 1
                     hyperparams = list(aug_chain.values())
-                    # todo : 여기 사용하게 되면 변경 필요 
+
                     aug_data = augment_by_policy_wapirl(tiny_X, tiny_y, *hyperparams)
 
-                    aug_data["X_train"] = apply_default_transformations(
-                        aug_data["X_train"]
-                    )
+                    aug_data["X_train"] = apply_default_transformations(aug_data["X_train"])
 
                     aug_X = np.concatenate([aug_X, aug_data["X_train"]])
                     aug_y = np.concatenate([aug_y, aug_data["y_train"]])
@@ -201,6 +199,4 @@ def deepaugment_image_generator(X, y, policy, batch_size=64, augment_chance=0.5)
                     aug_X = np.concatenate([aug_X, tiny_X])
                     aug_y = np.concatenate([aug_y, tiny_y])
             yield aug_X, aug_y
-
-
 

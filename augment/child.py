@@ -5,7 +5,6 @@ from torch.utils.data import DataLoader, Dataset
 import torch.nn as nn
 from models.basic import CNN
 from trainer import Trainer
-from metrics import MultiAccuracy, MultiAUPRC, MultiF1Score, MultiRecall, MultiPrecision, TopKAccuracy
 from datasets.transforms import WM811KTransformMultiple, WM811KTransform
 from datasets.wm811k import WM811K
 
@@ -18,20 +17,11 @@ class ChildCNN:
         self.num_classes = args.num_classes
         self.train_dataloader = None
         self.valid_dataloader = None
-        self.model = CNN()
+        # todo : basic.py의  CNN or CNNDeepAugmentBasic 둘다 선택되도록 변경
+        self.model = CNN(args)
         self.model.to(args.num_gpu)
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=args.lr)
-
-        fn_loss = torch.nn.CrossEntropyLoss()  # 비용 함수에 소프트맥스 함수 포함되어져 있음.
-        criterions = {
-            'MultiAccuracy': MultiAccuracy(num_classes=args.num_classes),
-            'MultiAUPRC': MultiAUPRC(num_classes=args.num_classes),
-            'MultiF1Score': MultiF1Score(num_classes=args.num_classes, average='macro'),
-            'MultiRecall': MultiRecall(num_classes=args.num_classes, average='macro'),
-            'MultiPrecision': MultiPrecision(num_classes=args.num_classes, average='macro'),
-            'TopKAccuracy': TopKAccuracy(num_classes=args.num_classes, k=3),
-        }
-        self.trainer = Trainer(args, self.model, self.optimizer, fn_loss, criterions)
+        self.trainer = Trainer(args, self.model)
 
     def evaluate_with_refreshed_validation_set(self, data):
         X_val_backup = data["X_val_backup"]

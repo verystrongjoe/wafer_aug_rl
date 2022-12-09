@@ -30,17 +30,6 @@ if __name__ == '__main__':
     random.seed(args.seed)
     np.random.seed(args.seed)
 
-    fn_loss = torch.nn.CrossEntropyLoss()  # 비용 함수에 소프트맥스 함수 포함되어져 있음.
-    criterions = {
-        'MultiAccuracy': MultiAccuracy(num_classes=args.num_classes),
-        'MultiAUPRC': MultiAUPRC(num_classes=args.num_classes),
-        'MultiF1Score': MultiF1Score(num_classes=args.num_classes, average='macro'),
-        'MultiRecall': MultiRecall(num_classes=args.num_classes, average='macro'),
-        'MultiPrecision': MultiPrecision(num_classes=args.num_classes, average='macro'),
-        'TopKAccuracy': TopKAccuracy(num_classes=args.num_classes, k=3),
-    }
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-
     train_transform = WM811KTransform(size=(args.input_size_xy, args.input_size_xy), mode='test')
     test_transform = WM811KTransform(size=(args.input_size_xy, args.input_size_xy), mode='test')
     train_set = WM811K('./data/wm811k/labeled/train/',
@@ -58,7 +47,18 @@ if __name__ == '__main__':
     test_loader = DataLoader(test_set, args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=False, pin_memory=False)
 
     best_valid_loss, best_epoch = float('inf'), 0
-    trainer = Trainer(args, model, optimizer, fn_loss, criterions)
+
+    criterions = {
+        'MultiAccuracy': MultiAccuracy(num_classes=args.num_classes),
+        'MultiAUPRC': MultiAUPRC(num_classes=args.num_classes),
+        'MultiF1Score': MultiF1Score(num_classes=args.num_classes, average='macro'),
+        'MultiRecall': MultiRecall(num_classes=args.num_classes, average='macro'),
+        'MultiPrecision': MultiPrecision(num_classes=args.num_classes, average='macro'),
+        'TopKAccuracy': TopKAccuracy(num_classes=args.num_classes, k=3),
+    }
+
+
+    trainer = Trainer(args, model, criterions)
 
     for epoch in range(args.epochs):
         wandb_history = {}

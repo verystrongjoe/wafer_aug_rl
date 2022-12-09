@@ -1,0 +1,5 @@
+trial_no,A_aug1_type,A_aug1_magnitude,A_aug2_type,A_aug2_magnitude,B_aug1_type,B_aug1_magnitude,B_aug2_type,B_aug2_magnitude,C_aug1_type,C_aug1_magnitude,C_aug2_type,C_aug2_magnitude,D_aug1_type,D_aug1_magnitude,D_aug2_type,D_aug2_magnitude,E_aug1_type,E_aug1_magnitude,E_aug2_type,E_aug2_magnitude,mean_late_val_acc,expected_accuracy_increase(%)
+1,rotate,0.844,rotate,0.847,rotate,0.384,rotate,0.057,rotate,0.478,rotate,0.48,rotate,0.836,rotate,0.648,rotate,0.957,rotate,0.87,0.6396666666666667,1.4000000000000012
+3,rotate,0.902,rotate,0.97,rotate,0.171,rotate,0.751,rotate,0.325,rotate,0.634,rotate,0.653,rotate,0.995,rotate,0.414,rotate,0.624,0.6373333333333333,1.1666666666666603
+0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,0.6256666666666667,0.0
+2,rotate,0.801,rotate,0.679,rotate,0.582,rotate,0.759,rotate,0.474,rotate,0.737,rotate,0.135,rotate,0.15,rotate,0.386,rotate,0.45,0.5803333333333334,-4.533333333333333

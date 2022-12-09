@@ -13,15 +13,22 @@ def get_args():
     parser.add_argument('--project_name', type=str, default='first')
 
     # nn
-    parser.add_argument('--model_type', type=str, default='basic')
+    parser.add_argument('--child_model_type', type=str, default='basic')
     parser.add_argument('--lr', type=float, default=0.005)
     parser.add_argument('--epochs', type=int, default=10)
-    parser.add_argument('--decouple_input',  action='store_true')
+
+    # wapirl
+    parser.add_argument('--backbone_type', type=str, default='resnet', choices=('resnet', 'vggnet', 'alexnet'))
+    parser.add_argument('--backbone_config', type=str, default='18')
+    parser.add_argument('--decouple_input', action='store_true')
 
     # data
     parser.add_argument('--name_dataset', type=str, default='wm811k')
     parser.add_argument('--input_size_xy', type=int, default=96)
     parser.add_argument('--num_classes', type=int, default=9)
+    parser.add_argument('--num_channel', type=int, default=1)
+    parser.add_argument('--flatten_dim_basic', type=int, default=21632)
+    parser.add_argument('--flatten_dim_basic_deep_augment', type=int, default=1111)
 
     # experiment
     parser.add_argument('--num_gpu', type=int, default=0)
