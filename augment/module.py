@@ -96,7 +96,7 @@ class Controller:
 
 class Notebook:
     def __init__(self, args):
-        self.args
+        self.args = args
         self.df = pd.DataFrame()
 
     def record(self, trial_no, trial_hyperparams, sample_no, reward, history):
