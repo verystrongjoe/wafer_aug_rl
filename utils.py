@@ -62,6 +62,7 @@ def pre_requisite(args):
     args.path_ckpt = f"output/checkpoints/{args.project_name}/{args.now}"
     args.notebook_path = f"output/notebook/{args.project_name}/{args.now}"
     os.makedirs(args.path_ckpt, exist_ok=True)
+    os.makedirs(args.notebook_path, exist_ok=True)
 
     # set logger
     args.logger = get_logger(args, 'main')
