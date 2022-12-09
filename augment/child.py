@@ -46,12 +46,16 @@ class ChildCNN:
         self.args.logger.info(f"Test loss:{test_loss}, Test accuracy:{test_acc}")
         return test_loss, test_acc
 
-    def fit(self, trial_hyperparams, epochs=None):
+    def fit(self, trial_hyperparams, epochs=None, aug_yn=True):
         if epochs is None:
             epochs = self.args.child_epochs
 
-        train_transform = WM811KTransformMultiple(self.args, trial_hyperparams)
         test_transform = WM811KTransform(size=(self.args.input_size_xy, self.args.input_size_xy), mode='test')
+        if aug_yn:
+            train_transform = WM811KTransformMultiple(self.args, trial_hyperparams)
+        else:
+            train_transform = test_transform
+
         train_set = WM811K('./data/wm811k/labeled/train/',
                            transform=train_transform,
                            decouple_input=self.args.decouple_input)

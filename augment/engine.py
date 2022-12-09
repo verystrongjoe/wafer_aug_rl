@@ -87,7 +87,7 @@ class DeepAugment:
         Training weights will be used as based to further child model trainings
         """
         history = self.child_model.fit(
-            self.data, epochs=self.config["child_first_train_epochs"]
+            self.data, epochs=self.args.child_first_train_epochs, aug_yn=False
         )
         self.notebook.record(
             -1, ["first", 0.0, "first", 0.0, "first", 0.0, 0.0], 1, None, history

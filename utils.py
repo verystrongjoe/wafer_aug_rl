@@ -34,9 +34,9 @@ def get_args():
     parser.add_argument('--method', default="bayesian_optimization", type=str)
     parser.add_argument('--images', default='wm811k', type=str)
     parser.add_argument('--labels', action='store_true')
-    parser.add_argument('--train_set_size', type=int, default=4000, help='')
-    parser.add_argument('--opt_iterations', type=int, default=1000, help='')
-    parser.add_argument('--opt_samples', type=int, default=5, help='')
+    parser.add_argument('--train_set_size', type=int, default=4000, help='')  # todo : dont use yet
+    parser.add_argument('--opt_iterations', type=int, default=3, help='')    # todo : change to 1000
+    parser.add_argument('--opt_samples', type=int, default=3, help='')       # todo : change to 5
     parser.add_argument('--opt_last_n_epochs', type=int, default=5, help='')
     parser.add_argument('--opt_initial_points', type=int, default=20, help='')
     parser.add_argument('--child_epochs', type=int, default=15, help='')

@@ -89,14 +89,15 @@ class Controller:
         :return:
         """
         if self.args.method == 'bayesian_optimization':
+            self.args.logger.info(f"previous tried with hyper param {trial_hyperparams} and get the reward {f_val}")
             self.opt.tell(trial_hyperparams, f_val)
         elif self.args.method == 'random_search':
             pass
 
 class Notebook:
     def __init__(self, args):
+        self.args
         self.df = pd.DataFrame()
-        self.store_path = args.notebook_path
 
     def record(self, trial_no, trial_hyperparams, sample_no, reward, history):
         """Records one complete training of child model
@@ -147,7 +148,7 @@ class Notebook:
         self.df = pd.concat([self.df, df_new])
 
     def save(self):
-        self.df.to_csv(self.store_path, index=False)
+        self.df.to_csv(self.args.notebook_path, index=False)
 
     def add_records_from(self, path_notebook):
         df_notebook = pd.read_csv(path_notebook, comments='#')
