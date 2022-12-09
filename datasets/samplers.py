@@ -28,7 +28,7 @@ class ImbalancedDatasetSampler(Sampler):
             target = self.get_target(dataset, idx)
             weights += [1.0 / target_counts[target]]
 
-        self.weights = torch.Tensor(weights).float()
+        self.weights = torch.tensor(weights).float()
 
     def __iter__(self):
         return (

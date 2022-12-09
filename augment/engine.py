@@ -12,6 +12,7 @@ from augment.image_generator import deepaugment_image_generator
 from utils import get_args, pre_requisite, print_metric, make_description
 import torch.multiprocessing
 
+
 class DeepAugment:
     def __init__(self, args):
         """Initializes DeepAugment object
@@ -107,6 +108,8 @@ class DeepAugment:
 
 if __name__ == '__main__':
     torch.multiprocessing.set_sharing_strategy('file_system')
+    logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
+
     args = get_args()
     run = pre_requisite(args)
 

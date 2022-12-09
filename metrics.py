@@ -24,7 +24,7 @@ class MultiAUPRC(nn.Module):
         for precision_, recall_, _ in multi_prcs:
             avg_auprc += auc(x=precision_, y=recall_, reorder=True)
 
-        return torch.Tensor([avg_auprc / self.num_classes])
+        return torch.tensor([avg_auprc / self.num_classes])
 
 
 class MultiAUROC(nn.Module):
