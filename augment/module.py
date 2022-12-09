@@ -110,8 +110,8 @@ class Notebook:
         """
         train_history, valid_history = history
         df_train_history, df_valid_history = pd.DataFrame(train_history), pd.DataFrame(valid_history)
-        df_train_history = ["train_" + c for c in df_train_history.columns]
-        df_valid_history = ["valid_" + c for c in df_valid_history.columns]
+        df_train_history.columns = ["train_" + c for c in df_train_history.columns]
+        df_valid_history.columns = ["valid_" + c for c in df_valid_history.columns]
         df_new = df_train_history.join(df_valid_history)
         df_new['trial_no'] = trial_no
         
