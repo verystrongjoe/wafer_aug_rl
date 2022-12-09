@@ -51,7 +51,7 @@ class DeepAugment:
         # iterate optimizer
         for trial_no in range(self.iterated + 1, self.iterated + iterations + 1):
             trial_hyperparams = self.controller.ask()
-            self.args.logger.info("trial:", trial_no, "\n", trial_hyperparams)
+            self.args.logger.info(f"trial_no: {trial_no}, trial_hyperparams: {trial_hyperparams}")
             f_val = self.objective_func.evaluate(trial_no, trial_hyperparams)
             self.controller.tell(trial_hyperparams, f_val)
         self.iterated += iterations  # update number of previous iterations

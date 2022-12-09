@@ -203,7 +203,7 @@ class Notebook:
             return path.replace(last, "")
 
         k = len(self.top_df)
-        out_path = get_folder_path(self.store_path) + f"top{k}_policies.csv"
+        out_path = get_folder_path(self.args.notebook_path) + f"/top{k}_policies.csv"
         self.top_df.to_csv(out_path, index=False)
         print(f"Top policies are saved to {out_path}")
 

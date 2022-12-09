@@ -19,6 +19,7 @@ def get_args():
     parser.add_argument('--decouple_input',  action='store_true')
 
     # data
+    parser.add_argument('--name_dataset', type=str, default='wm811k')
     parser.add_argument('--input_size_xy', type=int, default=96)
     parser.add_argument('--num_classes', type=int, default=9)
 
