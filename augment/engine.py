@@ -1,16 +1,8 @@
-import os
-import sys
-from os.path import dirname, realpath
-import pathlib
 import logging
-from argparse import Namespace
-import datetime
-import numpy as np
+import torch.multiprocessing
 from augment.child import ChildCNN
 from augment.module import Controller, Objective, Notebook
-from augment.image_generator import deepaugment_image_generator
-from utils import get_args, pre_requisite, print_metric, make_description
-import torch.multiprocessing
+from utils import get_args, pre_requisite
 
 
 class DeepAugment:

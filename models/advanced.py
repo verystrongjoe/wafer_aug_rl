@@ -1,18 +1,12 @@
 import torch
-import numpy as np
-from models.alexnet import AlexNetBackbone
-from models.vggnet import VggNetBackbone
-from models.resnet import ResNetBackbone
-from models.network_configs import ALEXNET_BACKBONE_CONFIGS
-from models.network_configs import VGGNET_BACKBONE_CONFIGS
-from models.network_configs import RESNET_BACKBONE_CONFIGS
-from models.head import LinearHead, MLPHead
-from models.head import LinearClassifier
-from utils  import get_logger
-from datasets.loaders import balanced_loader
-from torch.utils.data import DataLoader, Dataset
-import torch.nn as nn
 
+from models.alexnet import AlexNetBackbone
+from models.head import LinearClassifier
+from models.network_configs import ALEXNET_BACKBONE_CONFIGS
+from models.network_configs import RESNET_BACKBONE_CONFIGS
+from models.network_configs import VGGNET_BACKBONE_CONFIGS
+from models.resnet import ResNetBackbone
+from models.vggnet import VggNetBackbone
 
 AVAILABLE_MODELS = {
     'alexnet': (ALEXNET_BACKBONE_CONFIGS, AlexNetBackbone),
