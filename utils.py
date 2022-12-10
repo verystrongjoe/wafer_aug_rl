@@ -37,7 +37,6 @@ def get_args():
     parser.add_argument('--seed', type=int, default=1234)
     parser.add_argument('--best_ckpt', type=str, default='best.ckpt')
 
-
     # augment
     parser.add_argument('--method', default="bayesian_optimization", type=str)
     parser.add_argument('--images', default='wm811k', type=str)

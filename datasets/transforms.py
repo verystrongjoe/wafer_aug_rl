@@ -4,6 +4,7 @@ import cv2
 import torch
 import numpy as np
 import albumentations as A
+import pandas as pd
 
 from torch.distributions import Bernoulli
 from albumentations.core.transforms_interface import BasicTransform
@@ -388,10 +389,10 @@ class WM811KTransformMultiple(object):
                 # noise: float = 0.05
                 transforms.append(MaskedBernoulliNoise(noise=noise))
             elif mode == 'rotate':
-                limit = magnitude # 180 (angle)
+                limit = magnitude  # 180 (angle)
                 transforms.append(A.Rotate(limit=180, interpolation=cv2.INTER_NEAREST, border_mode=cv2.BORDER_CONSTANT, p=1.0),)
             elif mode == 'shift':
-                shift = magnitude # 0.25
+                shift = magnitude  # 0.25
                 transforms.append( A.ShiftScaleRotate(
                 shift_limit=shift,
                 scale_limit=0,
@@ -407,3 +408,5 @@ class WM811KTransformMultiple(object):
 
     def __call__(self, img):
         return self.transform(image=img)['image']
+
+

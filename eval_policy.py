@@ -7,67 +7,69 @@ from datasets.wm811k import WM811K
 from torch.utils.data import DataLoader
 import numpy as np
 from models.basic import CNN
+from multiprocessing import Pool
+# import tqdm
+import time
+import cv2
+from datasets.transforms import WM811KTransformMultiple
+from itertools import product
+import torch
+import os
+import random
+
+
+
+
+def load_image_cv2(filepath: str):
+    """Load image with cv2. Use with `albumentations`."""
+    out = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)  # 2D; (H, W)
+    return np.expand_dims(out, axis=2)  # 3D; (H, W, 1)
+
+
+def augment_by_policy_wapirl(sample, best_policy, args):
+    """
+    [ "rotate", 0.0, "rotate", 0.0,
+      "rotate", 0.0, "rotate", 0.0,
+      "rotate", 0.0, "rotate", 0.0,
+      "rotate", 0.0, "rotate", 0.0,
+      "rotate", 0.0, "rotate", 0.0]
+    """
+    X, y = sample
+    X_augs = []
+    y_augs = []
+
+    # policy = best_policy[
+    #     ['A_aug1_type', 'A_aug1_magnitude', 'A_aug2_type', 'A_aug2_magnitude',
+    #      'B_aug1_type', 'B_aug1_magnitude', 'B_aug2_type', 'B_aug2_magnitude',
+    #      'C_aug1_type', 'C_aug1_magnitude', 'C_aug2_type', 'C_aug2_magnitude',
+    #      'D_aug1_type', 'D_aug1_magnitude', 'D_aug2_type', 'D_aug2_magnitude',
+    #      'E_aug1_type', 'E_aug1_magnitude', 'E_aug2_type', 'E_aug2_magnitude']
+    # ].to_dict(orient="records")
+
+    aug_chain = np.random.choice(best_policy)
+    aug_chain[
+        "portion"
+    ] = 1.0  # last element is portion, which we want to be 1
+    hyperparams = list(aug_chain.values())
+
+    image = load_image_cv2(X)
+    label = y
+
+    for i in range(0, len(hyperparams)-1, 4):
+        aug1_mode, aug1_mag, aug2_mode, aug2_mag = hyperparams[i], hyperparams[i+1], hyperparams[i+2], hyperparams[i+3]
+        sub_hyperparams = [aug1_mode, aug1_mag, aug2_mode, aug2_mag]
+        transform = WM811KTransformMultiple(args, sub_hyperparams)
+        [X_augs.append(transform(image)) for x in X]
+        y_augs.append(label)
+
+    return {
+        "X_train": np.concatenate(X_augs),
+        "y_train": np.asarray(y_augs),
+    }
+
 
 def augment_type_chooser(args):
     return np.random.choice(args.aug_types)
-
-
-def deepaugment_image_generator(X, y, policy, batch_size=64, augment_chance=0.5):
-    # Yields batch of images after applying random augmentations from the policy
-    # Each image is augmented by 50% chance. If augmented, one of the augment-chain in the policy is applied. Which augment-chain to apply is chosen randomly.
-    if type(policy) == str:
-        if policy=="random":
-            policy=[]
-            for i in range(20):
-                policy.append(
-                    {
-                        "aug1_type": augment_type_chooser(),
-                        "aug1_magnitude":np.random.rand(),
-                        "aug2_type": augment_type_chooser(),
-                        "aug2_magnitude": np.random.rand(),
-                        "portion":np.random.rand()
-                    }
-                )
-        else:
-            policy_df = pd.read_csv(policy)
-            policy_df = policy_df[
-                ["aug1_type", "aug1_magnitude", "aug2_type", "aug2_magnitude"]
-            ]
-            policy = policy_df.to_dict(orient="records") # todo : 파라미터 처음 봄.
-
-    print(f"Policies are:  {policy}")
-
-    while True:
-        ix = np.arange(len(X))
-        np.random.shuffle(ix)
-        for i in range(len(X) // batch_size):
-            _ix = ix[i * batch_size : (i + 1) * batch_size]
-            _X = X[_ix]
-            _y = y[_ix]
-
-            tiny_batch_size = 4
-            aug_X = _X[0:tiny_batch_size]
-            aug_y = _y[0:tiny_batch_size]
-            for j in range(1, len(_X) // tiny_batch_size):
-                tiny_X = _X[j * tiny_batch_size : (j + 1) * tiny_batch_size]
-                tiny_y = _y[j * tiny_batch_size : (j + 1) * tiny_batch_size]
-                if np.random.rand() <= augment_chance:
-                    aug_chain = np.random.choice(policy)
-                    aug_chain[
-                        "portion"
-                    ] = 1.0  # last element is portion, which we want to be 1
-                    hyperparams = list(aug_chain.values())
-                    aug_data = augment_by_policy_wapirl(tiny_X, tiny_y, *hyperparams)
-
-                    aug_data["X_train"] = apply_default_transformations(
-                        aug_data["X_train"]
-                    )
-                    aug_X = np.concatenate([aug_X, aug_data["X_train"]])
-                    aug_y = np.concatenate([aug_y, aug_data["y_train"]])
-                else:
-                    aug_X = np.concatenate([aug_X, tiny_X])
-                    aug_y = np.concatenate([aug_y, tiny_y])
-            yield aug_X, aug_y
 
 
 if __name__ == '__main__':
@@ -77,17 +79,17 @@ if __name__ == '__main__':
     # 1. init
     args = get_args()
     run = pre_requisite(args)
-
     batch_size = args.child_batch_size
 
     test_transform = WM811KTransform(size=(args.input_size_xy, args.input_size_xy), mode='test')
+
     train_set = WM811K('./data/wm811k/labeled/train/', decouple_input=args.decouple_input)
-    valid_set = WM811K('./data/wm811k/labeled/valid/',
-                       transform=test_transform,
-                       decouple_input=args.decouple_input) # todo: 기존 DeepAugment에서는 1000개 샘플 뽑아 개수를 줄였음. 오래 걸리게 되면 여기도 조정 필요
-    test_set = WM811K('./data/wm811k/labeled/test/',
-                      transform=test_transform,
-                      decouple_input=args.decouple_input)
+    # todo: 기존 DeepAugment에서는 1000개 샘플 뽑아 개수를 줄였음. 오래 걸리게 되면 여기도 조정 필요
+    valid_set = WM811K('./data/wm811k/labeled/valid/', transform=test_transform, decouple_input=args.decouple_input)
+    test_set = WM811K('./data/wm811k/labeled/test/', transform=test_transform, decouple_input=args.decouple_input)
+
+    valid_loader = DataLoader(valid_set, args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=False,
+                             pin_memory=False)
     test_loader = DataLoader(test_set, args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=False,
                              pin_memory=False)
 
@@ -99,16 +101,39 @@ if __name__ == '__main__':
          'E_aug1_type', 'E_aug1_magnitude', 'E_aug2_type', 'E_aug2_magnitude']
     ].to_dict(orient="records")
 
-    ix = np.arange(len(test_set))
-    np.random.shuffle(ix)
-
-    print('start to evaluate')
-
     model = CNN(args).to(args.num_gpu)  # todo: change model type
     trainer = Trainer(args, model)
 
-    test_loader =
+    # 3. set model parameter and setting
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)  # if use multi-GPU
+    torch.backends.cudnn.deterministic = True
+    os.environ['PYTHONHASHSEED'] = str(args.seed)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
 
-    trainer.valid_epoch(test_loader)
-    # deepaugment_image_generator(images, labels, top_policies_list, batch_size=batch_size)
-    # trainer = Trainer(args, model, criterions)   # todo : epoch = 5, shuffle = False, test dataloader
+    # generate train dataset augmened by best policy above
+    with Pool(args.num_workers) as p:
+        r = p.starmap(augment_by_policy_wapirl, product(train_set.samples, [eval_policy], [args]))
+
+    train_loader = DataLoader(r, args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=False,
+                             pin_memory=False)
+
+    for epoch in range(args.epochs):
+        wandb_history = {}
+        train_history = trainer.train_epoch(train_loader)
+        valid_history = trainer.valid_epoch(valid_loader)
+        print_metric(epoch, args, train_history, valid_history)   ## log into console
+
+        if valid_history['loss'] < best_valid_loss:
+            best_valid_loss = valid_history['loss']
+            best_epoch = epoch
+            trainer.save_checkpoint(epoch)
+        run.log(make_description(train_history, 'train'))
+        run.log(make_description(train_history, 'valid'))
+
+    # load best model in all epochs
+    trainer.load_checkpoint(best_epoch)
+    test_history = trainer.valid_epoch(test_loader)
+    run.log(make_description(test_history, 'test'))

@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import sys
 from os.path import dirname, realpath
+from datasets.transforms import WM811KTransformMultiple
 
 file_path = realpath(__file__)
 dir_of_file = dirname(file_path)
@@ -128,75 +129,4 @@ def apply_default_transformations(X):
         img_aug = cutout_numpy(img_aug, size=6)
         X_aug.append(img_aug)
     return X_aug
-
-
-def deepaugment_image_generator(X, y, policy, batch_size=64, augment_chance=0.5):
-    """Yields batch of images after applying random augmentations from the policy
-
-    Each image is augmented by 50% chance. If augmented, one of the augment-chain in the policy is applied.
-    Which augment-chain to apply is chosen randomly.
-
-    Args:
-        X (numpy.array):
-        labels (numpy.array):
-        policy (list): list of dictionaries
-
-    Returns:
-    """
-    if type(policy) == str:
-
-        if policy=="random":
-            policy=[]
-            for i in range(20):
-                policy.append(
-                    {
-                        "aug1_type": augment_type_chooser(),
-                        "aug1_magnitude":np.random.rand(),
-                        "aug2_type": augment_type_chooser(),
-                        "aug2_magnitude": np.random.rand(),
-                        "portion":np.random.rand()
-                    }
-                )
-        else:
-            policy_df = pd.read_csv(policy)
-            pd.read_csv('best.csv')
-            policy_df = policy_df[
-                ["aug1_type", "aug1_magnitude", "aug2_type", "aug2_magnitude"]
-            ]
-            policy = policy_df.to_dict(orient="records")
-
-    print(f"Policies are: {policy}" )
-
-    while True:
-        ix = np.arange(len(X))
-        np.random.shuffle(ix)
-        for i in range(len(X) // batch_size):
-            _ix = ix[i * batch_size : (i + 1) * batch_size]
-            _X = X[_ix]
-            _y = y[_ix]
-
-            tiny_batch_size = 4
-            aug_X = _X[0:tiny_batch_size]
-            aug_y = _y[0:tiny_batch_size]
-
-            for j in range(1, len(_X) // tiny_batch_size):
-
-                tiny_X = _X[j * tiny_batch_size : (j + 1) * tiny_batch_size]
-                tiny_y = _y[j * tiny_batch_size : (j + 1) * tiny_batch_size]
-
-                if np.random.rand() <= augment_chance:
-                    aug_chain = np.random.choice(policy)
-                    aug_chain["portion"] = 1.0  # last element is portion, which we want to be 1
-                    hyperparams = list(aug_chain.values())
-
-                    aug_data = augment_by_policy_wapirl(tiny_X, tiny_y, *hyperparams)
-
-                    aug_data["X_train"] = apply_default_transformations(aug_data["X_train"])
-
-                    aug_X = np.concatenate([aug_X, aug_data["X_train"]])
-                    aug_y = np.concatenate([aug_y, aug_data["y_train"]])
-                else:
-                    aug_X = np.concatenate([aug_X, tiny_X])
-                    aug_y = np.concatenate([aug_y, tiny_y])
-            yield aug_X, aug_y
 
