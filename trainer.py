@@ -26,7 +26,7 @@ class Trainer:
 
         for batch in dataloader:
             xs = batch['x'].to(self.args.num_gpu)
-            ys = batch['y'].to(self.args.num_gpu)
+            ys = batch['y'].to(self.args.num_gpu).long()
             self.optimizer.zero_grad()
             y_preds = self.model(xs)
             loss = self.model.fn_loss(y_preds, ys)

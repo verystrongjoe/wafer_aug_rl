@@ -4,7 +4,8 @@ from trainer import Trainer
 from utils import get_args, pre_requisite, print_metric, make_description
 from datasets.transforms import WM811KTransform
 from datasets.wm811k import WM811K
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader
+from datasets.dataset import SimpleDataset
 import numpy as np
 from models.basic import CNN
 from multiprocessing import Pool
@@ -109,35 +110,18 @@ if __name__ == '__main__':
 
     # generate train dataset augmened by best policy above
     with Pool(args.num_workers) as p:
-        r = p.starmap(augment_by_policy_wapirl, product(train_set.samples[:100], [eval_policy], [args]))
+        r = p.starmap(augment_by_policy_wapirl, product(train_set.samples, [eval_policy], [args]))
 
     Xs, ys = [], []
     for item in r:
          Xs.extend(item['X_train'])
          ys.extend(item['y_train'])
 
-    class SimpleDataset(Dataset):
-        def __init__(self, Xs, ys):
-            """
-            Args:
-                csv_file (string): Path to the csv file with annotations.
-                root_dir (string): Directory with all the images.
-                transform (callable, optional): Optional transform to be applied
-                    on a sample.
-            """
-            self.Xs = Xs
-            self.ys = ys
-
-        def __len__(self):
-            return len(self.ys)
-
-        def __getitem__(self, idx):
-            return dict(x=self.Xs[idx], y=self.ys[idx], idx=idx)
-
     train_set = SimpleDataset(Xs,ys)
-
     train_loader = DataLoader(train_set, args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=False,
                              pin_memory=False)
+
+    best_valid_loss, best_epoch = float('inf'), 0
 
     for epoch in range(args.epochs):
         wandb_history = {}
