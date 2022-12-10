@@ -120,7 +120,6 @@ if __name__ == '__main__':
                              pin_memory=False)
     args.logger.info('train data is augmendted by best policy. end...')
 
-
     best_valid_loss, best_epoch = float('inf'), 0
 
     for epoch in range(args.epochs):
