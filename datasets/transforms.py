@@ -394,7 +394,7 @@ class WM811KTransformMultiple(object):
             elif mode == 'rotate':
                 args.logger.info("rotate")
                 limit = magnitude  # 180 (angle)
-                transforms.append(A.Rotate(limit=180, interpolation=cv2.INTER_NEAREST, border_mode=cv2.BORDER_CONSTANT, p=1.0),)
+                transforms.append(A.Rotate(limit=limit, interpolation=cv2.INTER_NEAREST, border_mode=cv2.BORDER_CONSTANT, p=1.0),)
             elif mode == 'shift':
                 args.logger.info("shift")
                 shift = magnitude  # 0.25
@@ -411,7 +411,6 @@ class WM811KTransformMultiple(object):
                 pass
         wbm_transform = ToWBM()
         transforms.append(wbm_transform)
-
         self.transform = A.Compose(transforms)
 
     def __call__(self, img):
