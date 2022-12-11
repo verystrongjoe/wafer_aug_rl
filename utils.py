@@ -49,7 +49,8 @@ def get_args():
     parser.add_argument('--child_epochs', type=int, default=15, help='')
     parser.add_argument('--child_first_train_epochs', type=int, default=0)
     parser.add_argument('--child_batch_size', type=int, default=32)
-    parser.add_argument("--aug_types", nargs='+', type=str, default=['rotate', 'rotate', 'rotate', 'rotate', 'rotate'])
+    # todo : 여기에  aug_types를 지정하는 부분
+    parser.add_argument("--aug_types", nargs='+', type=str, default=['crop', 'cutout', 'noise', 'rotate', 'shift'])
     parser.add_argument("--aug_magnitudes", nargs='+', type=float, default=[0.0, 0.0, 0.0, 0.0, 0.0])
     parser.add_argument('--reward_metric', type=str, default='MultiAUPRC')
 

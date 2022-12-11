@@ -16,6 +16,7 @@ import torch
 import os
 import random
 
+
 def load_image_cv2(filepath: str):
     """Load image with cv2. Use with `albumentations`."""
     out = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)  # 2D; (H, W)
@@ -58,10 +59,6 @@ def augment_by_policy_wapirl(sample, best_policy, args):
         "X_train": X_augs,
         "y_train": np.asarray(y_augs),
     }
-
-
-def augment_type_chooser(args):
-    return np.random.choice(args.aug_types)
 
 
 if __name__ == '__main__':

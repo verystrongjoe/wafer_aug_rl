@@ -1,8 +1,16 @@
+import os
+import sys
+from os.path import dirname, realpath
+import pathlib
 import logging
-import torch.multiprocessing
+from argparse import Namespace
+import datetime
+import numpy as np
 from augment.child import ChildCNN
 from augment.module import Controller, Objective, Notebook
-from utils import get_args, pre_requisite
+# from augment.image_generator import deepaugment_image_generator
+from utils import get_args, pre_requisite, print_metric, make_description
+import torch.multiprocessing
 
 
 class DeepAugment:
@@ -52,30 +60,30 @@ class DeepAugment:
         self.args.logger.info("\ntop policies are:\n", self.top_policies)
         return self.top_policies
 
-    def image_generator_with_top_policies(self, images, labels, batch_size=None):
-        """
-        Args:
-            images (numpy.array): array with shape (N,dim,dim,channek-size)
-            labels (numpy.array): array with shape (N), where each eleemnt is an integer from 0 to num_classes-1
-            batch_size (int): batch size of the generator on demand
-        Returns:
-            generator: generator for augmented images
-        """
-        if batch_size is None:
-            batch_size = self.config["child_batch_size"]
-
-        top_policies_list = self.top_policies[
-            ['A_aug1_type', 'A_aug1_magnitude', 'A_aug2_type', 'A_aug2_magnitude',
-             'B_aug1_type', 'B_aug1_magnitude', 'B_aug2_type', 'B_aug2_magnitude',
-             'C_aug1_type', 'C_aug1_magnitude', 'C_aug2_type', 'C_aug2_magnitude',
-             'D_aug1_type', 'D_aug1_magnitude', 'D_aug2_type', 'D_aug2_magnitude',
-             'E_aug1_type', 'E_aug1_magnitude', 'E_aug2_type', 'E_aug2_magnitude']
-        ].to_dict(orient="records")
-
-        return deepaugment_image_generator(images, labels, top_policies_list, batch_size=batch_size)
+    # def image_generator_with_top_policies(self, images, labels, batch_size=None):
+    #     """
+    #     Args:
+    #         images (numpy.array): array with shape (N,dim,dim,channek-size)
+    #         labels (numpy.array): array with shape (N), where each eleemnt is an integer from 0 to num_classes-1
+    #         batch_size (int): batch size of the generator on demand
+    #     Returns:
+    #         generator: generator for augmented images
+    #     """
+    #     if batch_size is None:
+    #         batch_size = self.args.child_batch_size
+    #
+    #     top_policies_list = self.top_policies[
+    #         ['A_aug1_type', 'A_aug1_magnitude', 'A_aug2_type', 'A_aug2_magnitude',
+    #          'B_aug1_type', 'B_aug1_magnitude', 'B_aug2_type', 'B_aug2_magnitude',
+    #          'C_aug1_type', 'C_aug1_magnitude', 'C_aug2_type', 'C_aug2_magnitude',
+    #          'D_aug1_type', 'D_aug1_magnitude', 'D_aug2_type', 'D_aug2_magnitude',
+    #          'E_aug1_type', 'E_aug1_magnitude', 'E_aug2_type', 'E_aug2_magnitude']
+    #     ].to_dict(orient="records")
+    #
+    #     return deepaugment_image_generator(images, labels, top_policies_list, batch_size=batch_size)
 
     def _do_initial_training(self):
-        """Do the first training without augmentations
+        """Do the first training without a ugmentations
 
         Training weights will be used as based to further child model trainings
         """

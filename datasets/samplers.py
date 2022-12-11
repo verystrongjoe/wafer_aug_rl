@@ -19,6 +19,7 @@ class ImbalancedDatasetSampler(Sampler):
         if num_samples is None:
             self.num_samples = len(self.indices)
         else:
+            assert 1==2
             self.num_samples = num_samples
 
         target_counts = self.get_target_counts(dataset)
@@ -42,6 +43,8 @@ class ImbalancedDatasetSampler(Sampler):
     def get_target_counts(dataset: Dataset):
         if dataset.__class__.__name__ == 'WM811K':
             targets = [s[-1] for s in dataset.samples]
+        elif dataset.__class__.__name__ == 'WM811KExtended':
+            targets = [s[-1] for s in dataset.samples] * dataset.n_transforms
         else:
             raise NotImplementedError
         return Counter(targets)
@@ -50,7 +53,8 @@ class ImbalancedDatasetSampler(Sampler):
     def get_target(dataset: Dataset, idx: int):
         if dataset.__class__.__name__ == 'WM811K':
             return dataset.samples[idx][-1]
-
+        elif dataset.__class__.__name__ == 'WM811KExtended':
+            return dataset.samples[idx % dataset.n_transforms][-1]
 
 if __name__ == '__main__':
 

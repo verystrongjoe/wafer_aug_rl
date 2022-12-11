@@ -236,9 +236,7 @@ class Objective:
             # calculate reward
             reward = self.calculate_reward(train_results, valid_results)
             sample_rewards.append(reward)
-            self.notebook.record(
-                trial_no, trial_hyperparams, sample_no, reward, (train_results, valid_results)
-            )
+            self.notebook.record(trial_no, trial_hyperparams, sample_no, reward, (train_results, valid_results))
 
         trial_cost = 1 - np.mean(sample_rewards)
         self.notebook.save(trial_no)
