@@ -410,7 +410,7 @@ class WM811KTransformMultiple(object):
             ),)
             elif mode == 'test':
                 pass
-        if mode != 'noise'
+        if mode != 'noise':
             transforms.append(ToWBM())
         self.transform = A.Compose(transforms)
 
