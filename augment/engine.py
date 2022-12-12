@@ -172,9 +172,6 @@ if __name__ == '__main__':
 
     args.logger.info(f'train data of {len(train_set)} is augmented by best policy. start...')
 
-    from multiprocessing import set_start_method
-    set_start_method("spawn")
-
     # generate train dataset augmented by best policy above
     # with Pool(args.num_workers) as p:
     #     r = p.starmap(augment_by_policy_wapirl, product(train_set.samples, [eval_policy], [args]))
