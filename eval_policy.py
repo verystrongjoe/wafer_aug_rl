@@ -12,9 +12,12 @@ from itertools import product
 import torch
 import os
 import random
-
+import logging
 
 if __name__ == '__main__':
+    torch.multiprocessing.set_sharing_strategy('file_system')
+    logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
+    logging.getLogger("albumentations").setLevel(logging.ERROR)
 
     # 1. init
     args = get_args()
