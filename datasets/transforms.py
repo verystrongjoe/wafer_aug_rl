@@ -374,7 +374,7 @@ class WM811KTransformMultiple(object):
 
         for i in range(0, len(hyperparams)-1, 2):
             mode, magnitude = hyperparams[i], hyperparams[i+1]
-            args.logger.info(f"mode : {mode}, magnitude : {magnitude}")
+            # args.logger.info(f"mode : {mode}, magnitude : {magnitude}")
             if mode == 'noise':
                 continue
             if mode == 'crop':
