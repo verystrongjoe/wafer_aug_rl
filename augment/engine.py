@@ -63,7 +63,7 @@ class DeepAugment:
         self.iterated += iterations  # update number of previous iterations
         self.top_policies = self.notebook.get_top_policies(20)
         self.notebook.output_top_policies()
-        self.args.logger.info("\ntop policies are:\n", self.top_policies)
+        self.args.logger.info(f"top policies are: {self.top_policies}")
         return self.top_policies
 
     # def image_generator_with_top_policies(self, images, labels, batch_size=None):
@@ -171,25 +171,21 @@ if __name__ == '__main__':
     trainer = Trainer(args, model)
 
     args.logger.info(f'train data of {len(train_set)} is augmented by best policy. start...')
-
     # generate train dataset augmented by best policy above
-    if True:
-        with Pool(args.num_workers) as p:
-            r = p.starmap(augment_by_policy_wapirl, product(train_set.samples, [eval_policy], [args]))
-    else:
-        for sample, eval_policy, args in product(train_set.samples, [eval_policy], [args]):
-            augment_by_policy_wapirl(sample, eval_policy, args)
-    args.logger.info('train data is augmented by best policy. end...1')
+    with Pool(args.num_workers) as p:
+        r = p.starmap(augment_by_policy_wapirl, product(train_set.samples, [eval_policy], [args]))
+    # for sample, eval_policy, args in product(train_set.samples, [eval_policy], [args]):
+    #     augment_by_policy_wapirl(sample, eval_policy, args)
+    args.logger.info('train data is augmented by best policy. end...')
 
     Xs, ys = [], []
     for item in r:
          Xs.extend(item['X_train'])
          ys.extend(item['y_train'])
 
-    train_set = SimpleDataset(Xs,ys)
+    train_set = SimpleDataset(Xs, ys)
     train_loader = DataLoader(train_set, args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=False,
                              pin_memory=False)
-    args.logger.info('train data is augmented by best policy. end...2')
 
     best_valid_loss, best_epoch = float('inf'), 0
 

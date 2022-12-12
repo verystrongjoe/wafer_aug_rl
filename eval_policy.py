@@ -57,7 +57,7 @@ if __name__ == '__main__':
     random.seed(args.seed)
     np.random.seed(args.seed)
 
-    args.logger.info('train data is augmendted by best policy. start...')
+    args.logger.info(f'train data of {len(train_set)} is augmented by best policy. start...')
     # generate train dataset augmened by best policy above
     with Pool(args.num_workers) as p:
         r = p.starmap(augment_by_policy_wapirl, product(train_set.samples, [eval_policy], [args]))
@@ -73,7 +73,7 @@ if __name__ == '__main__':
     train_set = SimpleDataset(Xs,ys)
     train_loader = DataLoader(train_set, args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=False,
                              pin_memory=False)
-    args.logger.info('train data is augmendted by best policy. end...')
+    args.logger.info('train data is augmented by best policy. end...')
 
     best_valid_loss, best_epoch = float('inf'), 0
 
