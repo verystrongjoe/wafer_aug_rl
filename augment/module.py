@@ -191,21 +191,14 @@ class Notebook:
             "mean_late_val_acc", "expected_accuracy_increase(%)"
         ]
         self.top_df = self.top_df[SELECT]
-
         print(f"top-{k} policies:", k)
         print(self.top_df)
-
         return self.top_df
 
     def output_top_policies(self):
-        def get_folder_path(path):
-            last = path.split("/")[-1]
-            return path.replace(last, "")
-
         k = len(self.top_df)
-        out_path = get_folder_path(self.args.notebook_path) + f"/top{k}_policies.csv"
-        self.top_df.to_csv(out_path, index=False)
-        print(f"Top policies are saved to {out_path}")
+        self.top_df.to_csv(f"{self.args.notebook_path}/top{k}_policies.csv", index=False)
+        print(f"Top policies are saved to {self.args.notebook_path}/top{k}_policies.csv")
 
 
 class Objective:

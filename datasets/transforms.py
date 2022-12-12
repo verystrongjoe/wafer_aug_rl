@@ -61,6 +61,8 @@ class WM811KTransform(object):
                  size: tuple = (96, 96),
                  mode: str = 'test',
                  **kwargs):
+        # todo : 여긴 test만 사용하는 것으로
+        assert mode == 'test'
 
         if isinstance(size, int):
             size = (size, size)
@@ -265,7 +267,6 @@ class WM811KTransform(object):
             ToWBM(),
             MaskedBernoulliNoise(noise=noise),
         ]
-
         return transform
 
     @staticmethod
@@ -373,32 +374,30 @@ class WM811KTransformMultiple(object):
 
         for i in range(0, len(hyperparams)-1, 2):
             mode, magnitude = hyperparams[i], hyperparams[i+1]
+            args.logger.info(f"mode : {mode}, magnitude : {magnitude}")
             if mode == 'noise':
                 continue
-
             if mode == 'crop':
-                args.logger.info("crop")
-                # scale = (0.5, 1.0)
-                scale = (magnitude, magnitude + 0.5)  # 0.1 < magnitude < 0.5
-                ratio = (0.9, 1.1)
-                transforms.append(A.RandomResizedCrop(*size, scale=scale, ratio=ratio, interpolation=cv2.INTER_NEAREST, p=1.0),)
+                range_magnitude = (0.5, 1.0)  # scale
+                final_magnitude = (range_magnitude[1] - range_magnitude[0]) * magnitude + range_magnitude[0]
+                ratio = (0.9, 1.1)  # WaPIRL
+                transforms.append(A.RandomResizedCrop(*size, scale=(0.5, final_magnitude), ratio=ratio, interpolation=cv2.INTER_NEAREST, p=1.0),)
             elif mode == 'cutout':
-                args.logger.info("cutout")
-                cut_ratio = magnitude  # 0.2 = magnitude
-                num_holes: int = 4
-                # cut_ratio: float = 0.2
-                cut_h = int(size[0] * cut_ratio)
-                cut_w = int(size[1] * cut_ratio)
+                num_holes: int = 4  # WaPIRL
+                range_magnitude = (0.0, 0.5)
+                final_magnitude = (range_magnitude[1] - range_magnitude[0]) * magnitude + range_magnitude[0]
+                cut_h = int(size[0] * final_magnitude)
+                cut_w = int(size[1] * final_magnitude)
                 transforms.append(A.Cutout(num_holes=num_holes, max_h_size=cut_h, max_w_size=cut_w, fill_value=0, p=0.5))
             elif mode == 'rotate':
-                args.logger.info("rotate")
-                limit = magnitude  # 180 (angle)
-                transforms.append(A.Rotate(limit=limit, interpolation=cv2.INTER_NEAREST, border_mode=cv2.BORDER_CONSTANT, p=1.0),)
+                range_magnitude = (0, 360)
+                final_magnitude = int((range_magnitude[1] - range_magnitude[0]) * magnitude + range_magnitude[0])
+                transforms.append(A.Rotate(limit=final_magnitude, interpolation=cv2.INTER_NEAREST, border_mode=cv2.BORDER_CONSTANT, p=1.0),)
             elif mode == 'shift':
-                args.logger.info("shift")
-                shift = magnitude  # 0.25
-                transforms.append( A.ShiftScaleRotate(
-                shift_limit=shift,
+                range_magnitude = (0, 0.5)
+                final_magnitude = int((range_magnitude[1] - range_magnitude[0]) * magnitude + range_magnitude[0])
+                transforms.append(A.ShiftScaleRotate(
+                shift_limit=final_magnitude,
                 scale_limit=0,
                 rotate_limit=0,
                 interpolation=cv2.INTER_NEAREST,
@@ -413,12 +412,10 @@ class WM811KTransformMultiple(object):
         for i in range(0, len(hyperparams)-1, 2):
             mode, magnitude = hyperparams[i], hyperparams[i+1]
             if mode == 'noise':
-                args.logger.info("noise")
-                noise = magnitude
-                # noise: float = 0.05
+                range_magnitude = (0., 0.20)
+                final_magnitude = int((range_magnitude[1] - range_magnitude[0]) * magnitude + range_magnitude[0])
                 transforms.append(ToWBM())
-                transforms.append(MaskedBernoulliNoise(noise=noise))
-
+                transforms.append(MaskedBernoulliNoise(noise=final_magnitude))
         self.transform = A.Compose(transforms)
 
     def __call__(self, img):
@@ -497,7 +494,6 @@ class WM811KTransformTwo(object):
             ToWBM(),
             MaskedBernoulliNoise(noise=noise),
         ]
-
         return transform
 
     @staticmethod

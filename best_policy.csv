@@ -1,0 +1,5 @@
+trial_no,A_aug1_type,A_aug1_magnitude,A_aug2_type,A_aug2_magnitude,B_aug1_type,B_aug1_magnitude,B_aug2_type,B_aug2_magnitude,C_aug1_type,C_aug1_magnitude,C_aug2_type,C_aug2_magnitude,D_aug1_type,D_aug1_magnitude,D_aug2_type,D_aug2_magnitude,E_aug1_type,E_aug1_magnitude,E_aug2_type,E_aug2_magnitude,mean_late_val_acc,expected_accuracy_increase(%)
+3,rotate,0.902,crop,0.97,rotate,0.171,cutout,0.751,rotate,0.325,crop,0.634,shift,0.653,rotate,0.995,noise,0.414,noise,0.624,0.6046666666666667,5.666666666666664
+2,noise,0.801,noise,0.679,rotate,0.582,noise,0.759,crop,0.474,crop,0.737,cutout,0.135,cutout,0.15,cutout,0.386,shift,0.45,0.569,2.0999999999999908
+1,noise,0.844,shift,0.847,rotate,0.384,cutout,0.057,cutout,0.478,shift,0.48,cutout,0.836,cutout,0.648,cutout,0.957,crop,0.87,0.5599999999999999,1.19999999999999
+0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,rotate,0.0,0.548,0.0

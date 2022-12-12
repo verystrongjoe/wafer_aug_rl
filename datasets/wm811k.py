@@ -92,28 +92,6 @@ class WM811K(Dataset):
         return torch.cat([x, m], dim=0)
 
 
-class WM811KForWaPIRL(WM811K):
-    def __init__(self, root, transform=None, positive_transform=None, decouple_input: bool = True):
-        super(WM811KForWaPIRL, self).__init__(root, transform, proportion=1.0, decouple_input=decouple_input)
-        self.positive_transform = positive_transform
-
-    def __getitem__(self, idx):
-        path, y = self.samples[idx]
-        img = self.load_image_cv2(path)
-
-        if self.transform is not None:
-            x = self.transform(img)
-
-        if self.positive_transform is not None:
-            x_t = self.positive_transform(img)
-
-        if self.decouple_input:
-            x = self.decouple_mask(x)
-            x_t = self.decouple_mask(x_t)
-
-        return dict(x=x, x_t=x_t, y=y, idx=idx)
-
-
 class WM811KExtended(Dataset):
     label2idx = {
         'center'    : 0,

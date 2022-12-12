@@ -43,7 +43,6 @@ class ChildCNN:
         self.args.logger.info(f'fit with trial_hyperparams : {trial_hyperparams}')
 
         test_transform = WM811KTransform(size=(self.args.input_size_xy, self.args.input_size_xy), mode='test')
-
         train_transforms = []
         for i in range(0, len(trial_hyperparams) - 1, 4):
             sub_trial_hyperparams = [trial_hyperparams[i], trial_hyperparams[i+1], trial_hyperparams[i+2], trial_hyperparams[i+3]]
@@ -55,19 +54,23 @@ class ChildCNN:
         if aug_yn:
             train_set = WM811KExtended('./data/wm811k/labeled/train/',
                                transforms=train_transforms,
+                               proportion=self.args.label_proportion,
                                decouple_input=self.args.decouple_input)
         else:
             train_set = WM811K('./data/wm811k/labeled/train/',
                                transform=train_transform,
+                               proportion=self.args.label_proportion,
                                decouple_input=self.args.decouple_input)
 
         # todo: 기존 DeepAugment에서는 1000개 샘플 뽑아 개수를 줄였음. 오래 걸리게 되면 여기도 조정 필요
         valid_set = WM811K('./data/wm811k/labeled/valid/',
                            transform=test_transform,
                            decouple_input=self.args.decouple_input)
-        # todo : shuffle이 어렵다.
+
+        # todo : shuffle = False -> AutoAugment에선 True로 해야됨.
         train_loader = balanced_loader(train_set, self.args.child_batch_size, num_workers=self.args.num_workers,
                                        shuffle=False, pin_memory=False)
+        # todo : 여기는 1000개씩 랜덤 샘플링 되도록 해야함.
         valid_loader = DataLoader(valid_set, self.args.child_batch_size, num_workers=self.args.num_workers,
                                   shuffle=False, drop_last=False, pin_memory=False)
 

@@ -1,16 +1,21 @@
-import os
-import sys
-from os.path import dirname, realpath
-import pathlib
 import logging
-from argparse import Namespace
-import datetime
+import os
+import random
+from itertools import product
+from multiprocessing import Pool
+
 import numpy as np
+import torch
+from torch.utils.data import DataLoader
+
 from augment.child import ChildCNN
 from augment.module import Controller, Objective, Notebook
-# from augment.image_generator import deepaugment_image_generator
-from utils import get_args, pre_requisite, print_metric, make_description
-import torch.multiprocessing
+from datasets.dataset import SimpleDataset
+from datasets.transforms import WM811KTransform
+from datasets.wm811k import WM811K
+from models.advanced import AdvancedCNN
+from trainer import Trainer
+from utils import get_args, pre_requisite, print_metric, make_description, augment_by_policy_wapirl
 
 
 class DeepAugment:
@@ -107,24 +112,98 @@ class DeepAugment:
 
 
 if __name__ == '__main__':
+
+    ####################################################################################################################
+    # initialize
+    ####################################################################################################################
     torch.multiprocessing.set_sharing_strategy('file_system')
     logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
-
     args = get_args()
     run = pre_requisite(args)
+    args.logger.info(f"args : {args}")  # logging params
 
-    # logging params
-    args.logger.info(args)
+    ####################################################################################################################
+    # set seed
+    ####################################################################################################################
+    torch.manual_seed(args.seed)
+    torch.cuda.manual_seed(args.seed)
+    torch.cuda.manual_seed_all(args.seed)  # if use multi-GPU
+    torch.backends.cudnn.deterministic = True
+    os.environ['PYTHONHASHSEED'] = str(args.seed)
+    random.seed(args.seed)
+    np.random.seed(args.seed)
 
-    # declare augmenter
-    deepaug = DeepAugment(args)
+    ####################################################################################################################
+    # find best Policy
+    ####################################################################################################################
+    deepaug = DeepAugment(args)     # declare augmenter
+    best_policies = deepaug.optimize(args.opt_iterations)       # run
+    args.logger.info(best_policies)     # log
+    best_policies.to_csv(f'{args.notebook_path}/best_policy.csv', index=False)
 
-    # run
-    best_policies = deepaug.optimize(args.opt_iterations)
+    ####################################################################################################################
+    # augment data
+    ####################################################################################################################
+    test_transform = WM811KTransform(size=(args.input_size_xy, args.input_size_xy), mode='test')
+    train_set = WM811K('./data/wm811k/labeled/train/', proportion=args.label_proportion, decouple_input=args.decouple_input)
+    # todo: DeepAugment에선 1000개 샘플 뽑아 개수 줄여 속도 향상 및 오버피팅 방지
+    valid_set = WM811K('./data/wm811k/labeled/valid/', transform=test_transform, decouple_input=args.decouple_input)
+    test_set = WM811K('./data/wm811k/labeled/test/', transform=test_transform, decouple_input=args.decouple_input)
+    valid_loader = DataLoader(valid_set, args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=False,
+                             pin_memory=False)
+    test_loader = DataLoader(test_set, args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=False,
+                             pin_memory=False)
+    eval_policy = best_policies[
+        ['A_aug1_type', 'A_aug1_magnitude', 'A_aug2_type', 'A_aug2_magnitude',
+         'B_aug1_type', 'B_aug1_magnitude', 'B_aug2_type', 'B_aug2_magnitude',
+         'C_aug1_type', 'C_aug1_magnitude', 'C_aug2_type', 'C_aug2_magnitude',
+         'D_aug1_type', 'D_aug1_magnitude', 'D_aug2_type', 'D_aug2_magnitude',
+         'E_aug1_type', 'E_aug1_magnitude', 'E_aug2_type', 'E_aug2_magnitude']
+    ].to_dict(orient="records")
 
-    # log
-    args.logger.info(best_policies)
+    ####################################################################################################################
+    # create full model and populate train dataset
+    ####################################################################################################################
+    model = AdvancedCNN(args)
+    trainer = Trainer(args, model)
 
-    best_policies.to_csv('best.csv', index=False)
+    args.logger.info('train data is augmendted by best policy. start...')
 
+    # generate train dataset augmened by best policy above
+    if True:
+        with Pool(args.num_workers) as p:
+            r = p.starmap(augment_by_policy_wapirl, product(train_set.samples, [eval_policy], [args]))
+    else:
+        for sample, eval_policy, args in product(train_set.samples, [eval_policy], [args]):
+            augment_by_policy_wapirl(sample, eval_policy, args)
+
+    Xs, ys = [], []
+    for item in r:
+         Xs.extend(item['X_train'])
+         ys.extend(item['y_train'])
+
+    train_set = SimpleDataset(Xs,ys)
+    train_loader = DataLoader(train_set, args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=False,
+                             pin_memory=False)
+    args.logger.info('train data is augmendted by best policy. end...')
+
+    best_valid_loss, best_epoch = float('inf'), 0
+
+    for epoch in range(args.epochs):
+        wandb_history = {}
+        train_history = trainer.train_epoch(train_loader)
+        valid_history = trainer.valid_epoch(valid_loader)
+        print_metric(epoch, args, train_history, valid_history)   ## log into console
+
+        if valid_history['loss'] < best_valid_loss:
+            best_valid_loss = valid_history['loss']
+            best_epoch = epoch
+            trainer.save_checkpoint(epoch)
+        run.log(make_description(train_history, 'train'))
+        run.log(make_description(train_history, 'valid'))
+
+    # load best model in all epochs
+    trainer.load_checkpoint(best_epoch)
+    test_history = trainer.valid_epoch(test_loader)
+    run.log(make_description(test_history, 'test'))
 

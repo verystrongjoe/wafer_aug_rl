@@ -4,18 +4,20 @@ import os
 from datetime import datetime
 import torch
 import wandb
-
+import cv2
+from datasets.transforms import WM811KTransformMultiple, WM811KTransform
+import numpy as np
 
 def get_args():
     parser = argparse.ArgumentParser(description='wapirl augmentation optimizer')
 
     # wandb
-    parser.add_argument('--project_name', type=str, default='first')
+    parser.add_argument('--project_name', type=str)
 
     # nn
     parser.add_argument('--child_model_type', type=str, default='basic')
     parser.add_argument('--lr', type=float, default=0.005)
-    parser.add_argument('--epochs', type=int, default=10)
+    parser.add_argument('--epochs', type=int, default=100)
 
     # wapirl
     parser.add_argument('--backbone_type', type=str, default='resnet', choices=('resnet', 'vggnet', 'alexnet'))
@@ -24,6 +26,7 @@ def get_args():
 
     # data
     parser.add_argument('--name_dataset', type=str, default='wm811k')
+    parser.add_argument('--label_proportion', type=float, default=0.01, help='Size of labeled data (0, 1].')
     parser.add_argument('--input_size_xy', type=int, default=96)
     parser.add_argument('--num_classes', type=int, default=9)
     parser.add_argument('--num_channel', type=int, default=1)
@@ -42,7 +45,7 @@ def get_args():
     parser.add_argument('--images', default='wm811k', type=str)
     parser.add_argument('--labels', action='store_true')
     parser.add_argument('--train_set_size', type=int, default=4000, help='')  # todo : dont use yet
-    parser.add_argument('--opt_iterations', type=int, default=3, help='')    # todo : change to 1000
+    parser.add_argument('--opt_iterations', type=int, default=200, help='')    # todo : change to 1000
     parser.add_argument('--opt_samples', type=int, default=3, help='')       # todo : change to 5
     parser.add_argument('--opt_last_n_epochs', type=int, default=5, help='')
     parser.add_argument('--opt_initial_points', type=int, default=20, help='')
@@ -51,7 +54,7 @@ def get_args():
     parser.add_argument('--child_batch_size', type=int, default=128)
     # todo : 여기에  aug_types를 지정하는 부분
     parser.add_argument("--aug_types", nargs='+', type=str, default=['crop', 'cutout', 'noise', 'rotate', 'shift'])
-    parser.add_argument("--aug_magnitudes", nargs='+', type=float, default=[0.0, 0.0, 0.0, 0.0, 0.0])
+    # parser.add_argument("--aug_magnitudes", nargs='+', type=float, default=[0.0, 0.0, 0.0, 0.0, 0.0])
     parser.add_argument('--reward_metric', type=str, default='MultiAUPRC')
 
     return parser.parse_args()
@@ -64,6 +67,8 @@ def pre_requisite(args):
     # set timestamp
     t = datetime.now()
     args.now = f"{t.year}_{t.month}_{t.day}_{t.hour}_{t.minute}_{t.second}"
+    if args.project_name is None:
+        args.project_name = f"{args.backbone_type}_{args.backbone_config}_{args.label_proportion}"
 
     # create directories
     args.path_logs = f"output/logs/{args.project_name}/{args.now}"
@@ -82,6 +87,8 @@ def pre_requisite(args):
     # confirm whether or not it's ready
     args.logger.info(f"Cuda Enabled : {torch.cuda.is_available()}")
     args.logger.info(f"GPU Info : num_gpu:{num_gpu}, name : {torch.cuda.get_device_name(num_gpu)}")
+    args.logger.info(f"Project name : {args.project_name}")
+
     assert torch.cuda.is_available()
     return run
 
@@ -128,6 +135,50 @@ def make_description(history: dict, prefix: str = ''):
     for metric_name, metric_values in history.items():
         new_history[prefix + "_" + metric_name] = metric_values
     return new_history
+
+
+def load_image_cv2(filepath: str):
+    """Load image with cv2. Use with `albumentations`."""
+    out = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)  # 2D; (H, W)
+    return np.expand_dims(out, axis=2)  # 3D; (H, W, 1)
+
+
+def augment_by_policy_wapirl(sample, best_policy, args):
+    """
+    [ "rotate", 0.0, "rotate", 0.0,
+      "rotate", 0.0, "rotate", 0.0,
+      "rotate", 0.0, "rotate", 0.0,
+      "rotate", 0.0, "rotate", 0.0,
+      "rotate", 0.0, "rotate", 0.0]
+    """
+    X, y = sample
+    X_augs = []
+    y_augs = []
+
+    aug_chain = np.random.choice(best_policy)
+    aug_chain[
+        "portion"
+    ] = 1.0  # last element is portion, which we want to be 1
+    hyperparams = list(aug_chain.values())
+
+    image = load_image_cv2(X)
+    label = y
+
+    for i in range(0, len(hyperparams)-1, 4):
+        aug1_mode, aug1_mag, aug2_mode, aug2_mag = hyperparams[i], hyperparams[i+1], hyperparams[i+2], hyperparams[i+3]
+        sub_hyperparams = [aug1_mode, aug1_mag, aug2_mode, aug2_mag]
+        if np.random.rand(1)[0] > 0.5:  # todo: change 0.5 into parameter
+            transform = WM811KTransformMultiple(args, sub_hyperparams)
+        else:
+            transform = WM811KTransform(size=(args.input_size_xy, args.input_size_xy), mode='test')
+        X_augs.append(transform(image))
+        y_augs.append(label)
+
+    return {
+        "X_train": X_augs,
+        "y_train": np.asarray(y_augs),
+    }
+
 
 
 if __name__ == '__main__':

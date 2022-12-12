@@ -1,78 +1,30 @@
 import pandas as pd
-from augment import image_generator
 from trainer import Trainer
-from utils import get_args, pre_requisite, print_metric, make_description
+from utils import get_args, pre_requisite, print_metric, make_description, augment_by_policy_wapirl
 from datasets.transforms import WM811KTransform
 from datasets.wm811k import WM811K
 from torch.utils.data import DataLoader
 from datasets.dataset import SimpleDataset
 import numpy as np
-from models.basic import CNN
+from models.advanced import AdvancedCNN
 from multiprocessing import Pool
-import cv2
-from datasets.transforms import WM811KTransformMultiple
 from itertools import product
 import torch
 import os
 import random
 
 
-def load_image_cv2(filepath: str):
-    """Load image with cv2. Use with `albumentations`."""
-    out = cv2.imread(filepath, cv2.IMREAD_GRAYSCALE)  # 2D; (H, W)
-    return np.expand_dims(out, axis=2)  # 3D; (H, W, 1)
-
-
-def augment_by_policy_wapirl(sample, best_policy, args):
-    """
-    [ "rotate", 0.0, "rotate", 0.0,
-      "rotate", 0.0, "rotate", 0.0,
-      "rotate", 0.0, "rotate", 0.0,
-      "rotate", 0.0, "rotate", 0.0,
-      "rotate", 0.0, "rotate", 0.0]
-    """
-    X, y = sample
-    X_augs = []
-    y_augs = []
-
-    aug_chain = np.random.choice(best_policy)
-    aug_chain[
-        "portion"
-    ] = 1.0  # last element is portion, which we want to be 1
-    hyperparams = list(aug_chain.values())
-
-    image = load_image_cv2(X)
-    label = y
-
-    for i in range(0, len(hyperparams)-1, 4):
-        aug1_mode, aug1_mag, aug2_mode, aug2_mag = hyperparams[i], hyperparams[i+1], hyperparams[i+2], hyperparams[i+3]
-        sub_hyperparams = [aug1_mode, aug1_mag, aug2_mode, aug2_mag]
-
-        if np.random.rand(1)[0] > 0.5:  # todo: change 0.5 into parameter
-            transform = WM811KTransformMultiple(args, sub_hyperparams)
-        else:
-            transform = WM811KTransform(size=(args.input_size_xy, args.input_size_xy), mode='test')
-        X_augs.append(transform(image))
-        y_augs.append(label)
-
-    return {
-        "X_train": X_augs,
-        "y_train": np.asarray(y_augs),
-    }
-
-
 if __name__ == '__main__':
-    best_policies = pd.read_csv('best.csv')
-    print(best_policies)
 
     # 1. init
     args = get_args()
     run = pre_requisite(args)
     batch_size = args.child_batch_size
-
+    best_policies = pd.read_csv('best_policy.csv')
+    print(best_policies)
     test_transform = WM811KTransform(size=(args.input_size_xy, args.input_size_xy), mode='test')
 
-    train_set = WM811K('./data/wm811k/labeled/train/', decouple_input=args.decouple_input)
+    train_set = WM811K('./data/wm811k/labeled/train/', proportion=args.label_proportion, decouple_input=args.decouple_input)
     # todo: 기존 DeepAugment에서는 1000개 샘플 뽑아 개수를 줄였음. 오래 걸리게 되면 여기도 조정 필요
     valid_set = WM811K('./data/wm811k/labeled/valid/', transform=test_transform, decouple_input=args.decouple_input)
     test_set = WM811K('./data/wm811k/labeled/test/', transform=test_transform, decouple_input=args.decouple_input)
@@ -90,7 +42,7 @@ if __name__ == '__main__':
          'E_aug1_type', 'E_aug1_magnitude', 'E_aug2_type', 'E_aug2_magnitude']
     ].to_dict(orient="records")
 
-    model = CNN(args).to(args.num_gpu)  # todo: change model type
+    model = AdvancedCNN(args)
     trainer = Trainer(args, model)
 
     # 3. set model parameter and setting
@@ -106,6 +58,9 @@ if __name__ == '__main__':
     # generate train dataset augmened by best policy above
     with Pool(args.num_workers) as p:
         r = p.starmap(augment_by_policy_wapirl, product(train_set.samples, [eval_policy], [args]))
+
+    # for sample, eval_policy, args in product(train_set.samples, [eval_policy], [args]):
+    #     augment_by_policy_wapirl(sample, eval_policy, args)
 
     Xs, ys = [], []
     for item in r:

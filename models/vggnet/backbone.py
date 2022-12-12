@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 
 from models.base import BackboneBase
-from utils.initialization import initialize_weights
+from models.initialization import initialize_weights
 
 
 class VggNetBackbone(BackboneBase):
