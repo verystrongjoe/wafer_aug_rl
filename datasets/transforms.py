@@ -24,6 +24,7 @@ class ToWBM(BasicTransform):
             if img.ndim == 2:
                 img = img[:, :, None]
             img = torch.from_numpy(img.transpose(2, 0, 1))
+            # img = torch.from_numpy(img)
             if isinstance(img, torch.ByteTensor):
                 img = img.float().div(255)
         return torch.ceil(img * 2)
@@ -368,10 +369,13 @@ class WM811KTransformMultiple(object):
         transforms.append(resize_transform)
 
         assert len(hyperparams) == 4  # todo : delete it
-        args.logger.info(f'WM811KTransformMultiple init with {hyperparams}')
+        # args.logger.info(f'WM811KTransformMultiple init with {hyperparams}')
 
         for i in range(0, len(hyperparams)-1, 2):
             mode, magnitude = hyperparams[i], hyperparams[i+1]
+            if mode == 'noise':
+                continue
+
             if mode == 'crop':
                 args.logger.info("crop")
                 # scale = (0.5, 1.0)
@@ -386,12 +390,6 @@ class WM811KTransformMultiple(object):
                 cut_h = int(size[0] * cut_ratio)
                 cut_w = int(size[1] * cut_ratio)
                 transforms.append(A.Cutout(num_holes=num_holes, max_h_size=cut_h, max_w_size=cut_w, fill_value=0, p=0.5))
-            elif mode == 'noise':
-                args.logger.info("noise")
-                noise = magnitude
-                # noise: float = 0.05
-                transforms.append(ToWBM())
-                transforms.append(MaskedBernoulliNoise(noise=noise))
             elif mode == 'rotate':
                 args.logger.info("rotate")
                 limit = magnitude  # 180 (angle)
@@ -410,8 +408,17 @@ class WM811KTransformMultiple(object):
             ),)
             elif mode == 'test':
                 pass
-        if mode != 'noise':
-            transforms.append(ToWBM())
+        transforms.append(ToWBM())
+
+        for i in range(0, len(hyperparams)-1, 2):
+            mode, magnitude = hyperparams[i], hyperparams[i+1]
+            if mode == 'noise':
+                args.logger.info("noise")
+                noise = magnitude
+                # noise: float = 0.05
+                transforms.append(ToWBM())
+                transforms.append(MaskedBernoulliNoise(noise=noise))
+
         self.transform = A.Compose(transforms)
 
     def __call__(self, img):
@@ -427,7 +434,7 @@ class WM811KTransformTwo(object):
         size = (args.input_size_xy, args.input_size_xy)
 
         assert len(hyperparams) == 4  # todo : delete it
-        args.logger.info(f'WM811KTransformMultiple init with {hyperparams}')
+        # args.logger.info(f'WM811KTransformMultiple init with {hyperparams}')
 
         mode1, magnitude1 = hyperparams[0], hyperparams[1]
         mode2, magnitude2 = hyperparams[2], hyperparams[3]
