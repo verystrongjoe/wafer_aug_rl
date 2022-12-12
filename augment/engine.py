@@ -56,9 +56,10 @@ class DeepAugment:
         # iterate optimizer
         for trial_no in range(self.iterated + 1, self.iterated + iterations + 1):
             trial_hyperparams = self.controller.ask()
-            self.args.logger.info(f"trial_no: {trial_no}, trial_hyperparams: {trial_hyperparams}")
             f_val = self.objective_func.evaluate(trial_no, trial_hyperparams)
             self.controller.tell(trial_hyperparams, f_val)
+            self.args.logger.info(f"trial_no: {trial_no}, trial_hyperparams: {trial_hyperparams}, f_val : {f_val}")
+            self.args.run.log({"f_val": f_val})  # send reward to wandb
         self.iterated += iterations  # update number of previous iterations
         self.top_policies = self.notebook.get_top_policies(20)
         self.notebook.output_top_policies()
@@ -119,7 +120,7 @@ if __name__ == '__main__':
     torch.multiprocessing.set_sharing_strategy('file_system')
     logging.getLogger("pytorch_lightning").setLevel(logging.ERROR)
     args = get_args()
-    run = pre_requisite(args)
+    pre_requisite(args)
     args.logger.info(f"args : {args}")  # logging params
 
     ####################################################################################################################
@@ -190,7 +191,6 @@ if __name__ == '__main__':
     best_valid_loss, best_epoch = float('inf'), 0
 
     for epoch in range(args.epochs):
-        wandb_history = {}
         train_history = trainer.train_epoch(train_loader)
         valid_history = trainer.valid_epoch(valid_loader)
         print_metric(epoch, args, train_history, valid_history)   ## log into console
@@ -199,11 +199,11 @@ if __name__ == '__main__':
             best_valid_loss = valid_history['loss']
             best_epoch = epoch
             trainer.save_checkpoint(epoch)
-        run.log(make_description(train_history, 'train'))
-        run.log(make_description(train_history, 'valid'))
+        args.run.log(make_description(train_history, 'train'))
+        args.run.log(make_description(train_history, 'valid'))
 
     # load best model in all epochs
     trainer.load_checkpoint(best_epoch)
     test_history = trainer.valid_epoch(test_loader)
-    run.log(make_description(test_history, 'test'))
+    args.run.log(make_description(test_history, 'test'))
 

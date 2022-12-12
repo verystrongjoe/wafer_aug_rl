@@ -30,8 +30,8 @@ def get_args():
     parser.add_argument('--input_size_xy', type=int, default=96)
     parser.add_argument('--num_classes', type=int, default=9)
     parser.add_argument('--num_channel', type=int, default=1)
-    parser.add_argument('--flatten_dim_basic', type=int, default=21632)
-    parser.add_argument('--flatten_dim_basic_deep_augment', type=int, default=1111)
+    parser.add_argument('--flatten_dim_basic', type=int, default=21632)  # mutually exclusive
+    parser.add_argument('--flatten_dim_basic_deep_augment', type=int, default=1111)  # mutually exclusive
 
     # experiment
     parser.add_argument('--num_gpu', type=int, default=0)
@@ -44,15 +44,19 @@ def get_args():
     parser.add_argument('--method', default="bayesian_optimization", type=str)
     parser.add_argument('--images', default='wm811k', type=str)
     parser.add_argument('--labels', action='store_true')
-    parser.add_argument('--train_set_size', type=int, default=4000, help='')  # todo : dont use yet
+
+    # todo : implement train_set_size
+    parser.add_argument('--train_set_size', type=int, default=4000, help='size of the training set during optimization. It should be small enough that computation will not take too long.')
     parser.add_argument('--opt_iterations', type=int, default=200, help='')    # todo : change to 1000
     parser.add_argument('--opt_samples', type=int, default=3, help='')       # todo : change to 5
-    parser.add_argument('--opt_last_n_epochs', type=int, default=5, help='')
-    parser.add_argument('--opt_initial_points', type=int, default=20, help='')
-    parser.add_argument('--child_epochs', type=int, default=15, help='')
-    parser.add_argument('--child_first_train_epochs', type=int, default=0)
-    parser.add_argument('--child_batch_size', type=int, default=128)
-    # todo : 여기에  aug_types를 지정하는 부분
+
+    parser.add_argument('--opt_last_n_epochs', type=int, default=5, help='number of non-overfitting epochs whose validation accuracy average will be used as reward. For each training, opt_last_n_epochs highest validation accuracies (where its difference to training accuracy is not more than 10%) are averaged and taken as reward.')
+    parser.add_argument('--opt_initial_points', type=int, default=20, help='number of random initial policies will be tried by Bayesian Optimizer. It will be the n_initial_points argument for skopt Optimizer')  # 20개
+
+    parser.add_argument('--child_epochs', type=int, default=15, help='number of epochs for the child model')
+    parser.add_argument('--child_first_train_epochs', type=int, default=0, help=' if not 0, child model is pre-trained without any augmentation and its resulting weights are load for each training with augmentation. The purpose is training child model 10-20 epochs once and thereby saving 10-20 epochs for each training of optimizer iterations which is +100 times.')
+    parser.add_argument('--child_batch_size', type=int, default=128, hel='batch size for the child model')
+
     parser.add_argument("--aug_types", nargs='+', type=str, default=['crop', 'cutout', 'noise', 'rotate', 'shift'])
     # parser.add_argument("--aug_magnitudes", nargs='+', type=float, default=[0.0, 0.0, 0.0, 0.0, 0.0])
     parser.add_argument('--reward_metric', type=str, default='MultiAUPRC')
@@ -83,6 +87,7 @@ def pre_requisite(args):
     # init wandb
     run = wandb.init(project=args.project_name, config=args)
     run.name = args.now
+    args.run = run
 
     # confirm whether or not it's ready
     args.logger.info(f"Cuda Enabled : {torch.cuda.is_available()}")
@@ -178,7 +183,6 @@ def augment_by_policy_wapirl(sample, best_policy, args):
         "X_train": X_augs,
         "y_train": np.asarray(y_augs),
     }
-
 
 
 if __name__ == '__main__':

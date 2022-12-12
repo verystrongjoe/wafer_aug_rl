@@ -94,6 +94,7 @@ class Controller:
         elif self.args.method == 'random_search':
             pass
 
+
 class Notebook:
     def __init__(self, args):
         self.args = args
@@ -162,24 +163,17 @@ class Notebook:
                 .reset_index()
         )[["trial_no", "mean_late_val_acc"]]
 
-        x_df = pd.merge(
-            self.df.drop(columns=["mean_late_val_acc"]),
+        x_df = pd.merge(self.df.drop(columns=["mean_late_val_acc"]),
             trial_avg_val_acc_df,
             on="trial_no",
             how="left",
         )
 
         x_df = x_df.sort_values("mean_late_val_acc", ascending=False)
-
         baseline_val_acc = x_df[x_df["trial_no"] == 0]["mean_late_val_acc"].values[0]
+        x_df["expected_accuracy_increase(%)"] = (x_df["mean_late_val_acc"] - baseline_val_acc) * 100
 
-        x_df["expected_accuracy_increase(%)"] = (
-                                                        x_df["mean_late_val_acc"] - baseline_val_acc
-                                                ) * 100
-
-        self.top_df = x_df.drop_duplicates(["trial_no"]).sort_values(
-            "mean_late_val_acc", ascending=False
-        )[:k]
+        self.top_df = x_df.drop_duplicates(["trial_no"]).sort_values("mean_late_val_acc", ascending=False)[:k]
 
         SELECT = [
             "trial_no",
