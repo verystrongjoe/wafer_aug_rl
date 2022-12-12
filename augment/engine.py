@@ -176,10 +176,10 @@ if __name__ == '__main__':
     set_start_method("spawn")
 
     # generate train dataset augmented by best policy above
-    with Pool(args.num_workers) as p:
-        r = p.starmap(augment_by_policy_wapirl, product(train_set.samples, [eval_policy], [args]))
-    # for sample, eval_policy, args in product(train_set.samples, [eval_policy], [args]):
-    #     augment_by_policy_wapirl(sample, eval_policy, args)
+    # with Pool(args.num_workers) as p:
+    #     r = p.starmap(augment_by_policy_wapirl, product(train_set.samples, [eval_policy], [args]))
+    for sample, eval_policy, args in product(train_set.samples, [eval_policy], [args]):
+        augment_by_policy_wapirl(sample, eval_policy, args)
     args.logger.info('train data is augmented by best policy. end...')
 
     Xs, ys = [], []
