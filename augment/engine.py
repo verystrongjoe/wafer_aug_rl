@@ -168,15 +168,16 @@ if __name__ == '__main__':
     model = AdvancedCNN(args)
     trainer = Trainer(args, model)
 
-    args.logger.info('train data is augmendted by best policy. start...')
+    args.logger.info(f'train data of {len(train_set)} is augmented by best policy. start...')
 
-    # generate train dataset augmened by best policy above
+    # generate train dataset augmented by best policy above
     if True:
         with Pool(args.num_workers) as p:
             r = p.starmap(augment_by_policy_wapirl, product(train_set.samples, [eval_policy], [args]))
     else:
         for sample, eval_policy, args in product(train_set.samples, [eval_policy], [args]):
             augment_by_policy_wapirl(sample, eval_policy, args)
+    args.logger.info('train data is augmented by best policy. end...1')
 
     Xs, ys = [], []
     for item in r:
@@ -186,7 +187,7 @@ if __name__ == '__main__':
     train_set = SimpleDataset(Xs,ys)
     train_loader = DataLoader(train_set, args.batch_size, num_workers=args.num_workers, shuffle=True, drop_last=False,
                              pin_memory=False)
-    args.logger.info('train data is augmendted by best policy. end...')
+    args.logger.info('train data is augmented by best policy. end...2')
 
     best_valid_loss, best_epoch = float('inf'), 0
 
